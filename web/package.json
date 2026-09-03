@@ -1,5 +1,5 @@
 {
-  "name": "edp-visualization-web",
+  "name": "seatunnel-control-plane-web",
   "private": true,
   "version": "1.0.0",
   "type": "module",

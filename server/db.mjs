@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import Database from 'better-sqlite3'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const DEFAULT_DB_PATH = join(__dirname, '../data/edp-visualization.sqlite')
+const DEFAULT_DB_PATH = join(__dirname, '../data/seatunnel-control-plane.sqlite')
 
 let db
 

@@ -1,8 +1,8 @@
 {
-  "name": "edp-visualization",
+  "name": "seatunnel-control-plane",
   "version": "1.0.0",
   "private": true,
-  "description": "SeaTunnel Zeta REST API V2 visualization console",
+  "description": "SeaTunnel Zeta REST API V2 control plane",
   "scripts": {
     "dev": "sh scripts/start.sh start",
     "dev:web": "npm --prefix web run dev",
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^13.0.3",
     "cron-parser": "^4.9.0",
     "node-cron": "^3.0.3"
   }

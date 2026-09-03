@@ -97,7 +97,7 @@ cmd_stop() {
     kill_port_listeners "$api_port"
   fi
   rm -f "$RUNTIME_FILE"
-  echo "Stopped edp-visualization"
+  echo "Stopped seatunnel-control-plane"
 }
 
 cmd_status() {
@@ -117,7 +117,7 @@ cmd_status() {
   if [ -n "${api_port:-}" ] && is_port_in_use "$api_port"; then server_ok=1; fi
   if [ -n "${web_port:-}" ] && is_port_in_use "$web_port"; then web_ok=1; fi
 
-  echo "edp-visualization status"
+  echo "seatunnel-control-plane status"
   echo "  project : $project_dir"
   if [ -n "${api_port:-}" ]; then
     echo "  api     : http://127.0.0.1:${api_port}/  (pid ${server_pid:-—}) $([ "$server_ok" -eq 1 ] && echo running || echo stopped)"

@@ -181,7 +181,7 @@ async function bootstrap() {
   }
 
   const port = await listenWithFallback(PREFERRED_PORT)
-  console.log(`EDP Visualization proxy listening on http://127.0.0.1:${port}`)
+  console.log(`SeaTunnel Control Plane listening on http://127.0.0.1:${port}`)
   console.log(`Task API: /api/tasks/*`)
   console.log(`Auth API: /api/auth/*`)
 }
