@@ -1,8 +1,9 @@
 import { createServer } from 'node:http'
-import { readFileSync, existsSync, statSync } from 'node:fs'
+import { existsSync, statSync, createReadStream } from 'node:fs'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createReadStream } from 'node:fs'
+import { checkDbConnection, initSchema } from './db.mjs'
+import { handleTasksApi } from './tasks-router.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const PORT = Number(process.env.EDP_VIZ_PORT || 8800)
@@ -61,6 +62,19 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`)
   const pathname = url.pathname
 
+  if (pathname.startsWith('/api/tasks')) {
+    try {
+      const handled = await handleTasksApi(req, res, pathname, url.searchParams)
+      if (handled) return
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Not found' }))
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: String(error.message || error) }))
+    }
+    return
+  }
+
   if (pathname.startsWith('/api/seatunnel')) {
     const targetPath = pathname.replace(/^\/api\/seatunnel/, '') + url.search
     const chunks = []
@@ -81,7 +95,21 @@ const server = createServer(async (req, res) => {
   res.end(JSON.stringify({ status: 'ok', proxy: SEATUNNEL_BASE, mode: isProd ? 'production' : 'dev-proxy' }))
 })
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`EDP Visualization proxy listening on http://127.0.0.1:${PORT}`)
-  console.log(`Forwarding /api/seatunnel/* -> ${SEATUNNEL_BASE}`)
-})
+async function bootstrap() {
+  try {
+    await initSchema()
+    await checkDbConnection()
+    console.log('Task DB connected and schema ready')
+  } catch (error) {
+    console.warn('Task DB unavailable:', error.message)
+    console.warn('Run: npm run init-db')
+  }
+
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`EDP Visualization proxy listening on http://127.0.0.1:${PORT}`)
+    console.log(`Forwarding /api/seatunnel/* -> ${SEATUNNEL_BASE}`)
+    console.log(`Task API: /api/tasks/*`)
+  })
+}
+
+bootstrap()

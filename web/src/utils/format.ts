@@ -19,7 +19,8 @@ export function formatDuration(ms?: number): string {
 
 export function jobStatusTone(status?: string): 'running' | 'success' | 'warning' | 'danger' | 'muted' {
   const normalized = (status || '').toUpperCase()
-  if (['RUNNING', 'PENDING', 'RESTORE'].includes(normalized)) return 'running'
+  if (['RUNNING', 'PENDING', 'RESTORE', 'SUBMITTED'].includes(normalized)) return 'running'
+  if (normalized === 'IDLE') return 'muted'
   if (['FINISHED', 'SAVEPOINT_DONE'].includes(normalized)) return 'success'
   if (['CANCELLED', 'CANCELED'].includes(normalized)) return 'warning'
   if (['FAILED', 'UNKNOWABLE'].includes(normalized)) return 'danger'

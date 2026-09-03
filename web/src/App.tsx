@@ -7,6 +7,9 @@ import { LogsPage } from './pages/LogsPage'
 import { PendingPage } from './pages/PendingPage'
 import { SubmitPage } from './pages/SubmitPage'
 import { SystemPage } from './pages/SystemPage'
+import { TaskDetailPage } from './pages/TaskDetailPage'
+import { TaskEditorPage } from './pages/TaskEditorPage'
+import { TasksPage } from './pages/TasksPage'
 import { ToolsPage } from './pages/ToolsPage'
 
 export default function App() {
@@ -14,6 +17,10 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/tasks/new" element={<TaskEditorPage />} />
+        <Route path="/tasks/:id/edit" element={<TaskEditorPage />} />
+        <Route path="/tasks/:id" element={<TaskDetailPage />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:jobId" element={<JobDetailPage />} />
         <Route path="/pending" element={<PendingPage />} />

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 
 const NAV_ITEMS = [
   { to: '/', label: '集群概览' },
+  { to: '/tasks', label: '任务管理' },
   { to: '/jobs', label: '作业管理' },
   { to: '/pending', label: 'Pending 队列' },
   { to: '/submit', label: '提交作业' },
