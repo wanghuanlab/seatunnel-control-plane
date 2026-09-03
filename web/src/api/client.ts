@@ -10,30 +10,14 @@ import type {
   PendingJobsResponse,
   SubmitJobResponse,
   SystemMonitoringNode,
+  WorkerResourcesResponse,
 } from '../types/api'
+import { apiRequest } from './http'
 
 const BASE = '/api/seatunnel'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
-    headers: {
-      Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
-    },
-    ...init,
-  })
-
-  const contentType = response.headers.get('content-type') || ''
-  const isJson = contentType.includes('application/json')
-  const payload = isJson ? await response.json() : await response.text()
-
-  if (!response.ok) {
-    const message = typeof payload === 'string' ? payload : JSON.stringify(payload)
-    throw new Error(message || `Request failed: ${response.status}`)
-  }
-
-  return payload as T
+  return apiRequest<T>(`${BASE}${path}`, init)
 }
 
 function unwrapJobList(payload: JobSummary[] | PaginatedJobList): JobSummary[] {
@@ -72,6 +56,14 @@ export const seatunnelApi = {
 
   getSystemMonitoring: () =>
     request<SystemMonitoringNode[]>('/system-monitoring-information'),
+
+  getResourceWorkers: async () => {
+    try {
+      return await request<WorkerResourcesResponse>('/resource/workers')
+    } catch {
+      return null
+    }
+  },
 
   submitJob: (body: unknown, params?: { jobId?: string; jobName?: string; format?: string }) => {
     const format = params?.format || 'json'

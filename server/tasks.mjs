@@ -1,4 +1,4 @@
-import { getPool } from './db.mjs'
+import { dbAll, dbGet, dbRun, nowIso, toBool, toIso } from './db.mjs'
 import { attachScheduleSummary } from './schedules.mjs'
 import { fetchJobInfo, isActiveJobStatus, submitJobToSeatunnel } from './seatunnel.mjs'
 
@@ -10,13 +10,13 @@ function mapTask(row) {
     configFormat: row.config_format,
     configContent: row.config_content,
     defaultJobName: row.default_job_name,
-    createdAt: row.created_at?.toISOString?.() || row.created_at,
-    updatedAt: row.updated_at?.toISOString?.() || row.updated_at,
-    lastRunAt: row.last_run_at?.toISOString?.() || row.last_run_at || null,
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
+    lastRunAt: toIso(row.last_run_at),
     lastJobId: row.last_job_id,
     lastJobStatus: row.last_job_status,
     lastErrorMsg: row.last_error_msg,
-    isEnabled: row.is_enabled,
+    isEnabled: toBool(row.is_enabled),
   }
 }
 
@@ -28,12 +28,12 @@ function mapRun(row) {
     jobName: row.job_name,
     status: row.status,
     errorMsg: row.error_msg,
-    startedAt: row.started_at?.toISOString?.() || row.started_at,
-    finishedAt: row.finished_at?.toISOString?.() || row.finished_at || null,
+    startedAt: toIso(row.started_at),
+    finishedAt: toIso(row.finished_at),
   }
 }
 
-async function syncTaskStatus(client, taskRow) {
+async function syncTaskStatus(taskRow) {
   if (!taskRow.last_job_id || !isActiveJobStatus(taskRow.last_job_status)) {
     return taskRow
   }
@@ -43,15 +43,16 @@ async function syncTaskStatus(client, taskRow) {
     const status = String(info.jobStatus || taskRow.last_job_status).toUpperCase()
     const errorMsg = info.errorMsg || null
     const finished = !isActiveJobStatus(status)
+    const finishedAt = finished ? nowIso() : null
 
-    await client.query(
-      `UPDATE tasks SET last_job_status = $1, last_error_msg = $2, updated_at = NOW() WHERE id = $3`,
-      [status, errorMsg, taskRow.id],
+    dbRun(
+      `UPDATE tasks SET last_job_status = ?, last_error_msg = ?, updated_at = ? WHERE id = ?`,
+      [status, errorMsg, nowIso(), taskRow.id],
     )
-    await client.query(
-      `UPDATE task_runs SET status = $1, error_msg = $2, finished_at = CASE WHEN $3 THEN NOW() ELSE finished_at END
-       WHERE task_id = $4 AND job_id = $5`,
-      [status, errorMsg, finished, taskRow.id, taskRow.last_job_id],
+    dbRun(
+      `UPDATE task_runs SET status = ?, error_msg = ?, finished_at = CASE WHEN ? = 1 THEN ? ELSE finished_at END
+       WHERE task_id = ? AND job_id = ?`,
+      [status, errorMsg, finished ? 1 : 0, finishedAt, taskRow.id, taskRow.last_job_id],
     )
 
     return {
@@ -59,180 +60,154 @@ async function syncTaskStatus(client, taskRow) {
       last_job_status: status,
       last_error_msg: errorMsg,
     }
-  } catch (error) {
+  } catch {
     return taskRow
   }
 }
 
 export async function listTasks({ sync = true } = {}) {
-  const client = await getPool().connect()
-  try {
-    const { rows } = await client.query('SELECT * FROM tasks ORDER BY updated_at DESC')
-    const synced = sync
-      ? await Promise.all(rows.map((row) => syncTaskStatus(client, row)))
-      : rows
-    const tasks = synced.map(mapTask)
-    return attachScheduleSummary(tasks)
-  } finally {
-    client.release()
-  }
+  const rows = dbAll('SELECT * FROM tasks ORDER BY updated_at DESC')
+  const synced = sync
+    ? await Promise.all(rows.map((row) => syncTaskStatus(row)))
+    : rows
+  return attachScheduleSummary(synced.map(mapTask))
 }
 
 export async function getTask(id) {
-  const client = await getPool().connect()
-  try {
-    const { rows } = await client.query('SELECT * FROM tasks WHERE id = $1', [id])
-    if (!rows.length) return null
-    const synced = await syncTaskStatus(client, rows[0])
-    const [task] = await attachScheduleSummary([mapTask(synced)])
-    return task
-  } finally {
-    client.release()
-  }
+  const row = dbGet('SELECT * FROM tasks WHERE id = ?', [id])
+  if (!row) return null
+  const synced = await syncTaskStatus(row)
+  const [task] = await attachScheduleSummary([mapTask(synced)])
+  return task
 }
 
 export async function createTask(payload) {
-  const client = await getPool().connect()
-  try {
-    const { rows } = await client.query(
-      `INSERT INTO tasks (name, description, config_format, config_content, default_job_name, is_enabled)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [
-        payload.name,
-        payload.description || null,
-        payload.configFormat || 'hocon',
-        payload.configContent,
-        payload.defaultJobName || null,
-        payload.isEnabled !== false,
-      ],
-    )
-    return mapTask(rows[0])
-  } finally {
-    client.release()
-  }
+  const ts = nowIso()
+  const row = dbGet(
+    `INSERT INTO tasks (name, description, config_format, config_content, default_job_name, is_enabled, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     RETURNING *`,
+    [
+      payload.name,
+      payload.description || null,
+      payload.configFormat || 'hocon',
+      payload.configContent,
+      payload.defaultJobName || null,
+      payload.isEnabled !== false ? 1 : 0,
+      ts,
+      ts,
+    ],
+  )
+  return mapTask(row)
 }
 
 export async function updateTask(id, payload) {
-  const client = await getPool().connect()
-  try {
-    const { rows } = await client.query(
-      `UPDATE tasks SET
-         name = COALESCE($2, name),
-         description = COALESCE($3, description),
-         config_format = COALESCE($4, config_format),
-         config_content = COALESCE($5, config_content),
-         default_job_name = COALESCE($6, default_job_name),
-         is_enabled = COALESCE($7, is_enabled),
-         updated_at = NOW()
-       WHERE id = $1
-       RETURNING *`,
-      [
-        id,
-        payload.name ?? null,
-        payload.description ?? null,
-        payload.configFormat ?? null,
-        payload.configContent ?? null,
-        payload.defaultJobName ?? null,
-        payload.isEnabled ?? null,
-      ],
-    )
-    if (!rows.length) return null
-    return mapTask(rows[0])
-  } finally {
-    client.release()
-  }
+  const row = dbGet(
+    `UPDATE tasks SET
+       name = COALESCE(?, name),
+       description = COALESCE(?, description),
+       config_format = COALESCE(?, config_format),
+       config_content = COALESCE(?, config_content),
+       default_job_name = COALESCE(?, default_job_name),
+       is_enabled = COALESCE(?, is_enabled),
+       updated_at = ?
+     WHERE id = ?
+     RETURNING *`,
+    [
+      payload.name ?? null,
+      payload.description ?? null,
+      payload.configFormat ?? null,
+      payload.configContent ?? null,
+      payload.defaultJobName ?? null,
+      payload.isEnabled === undefined ? null : payload.isEnabled ? 1 : 0,
+      nowIso(),
+      id,
+    ],
+  )
+  if (!row) return null
+  return mapTask(row)
 }
 
 export async function deleteTask(id) {
-  const { rowCount } = await getPool().query('DELETE FROM tasks WHERE id = $1', [id])
-  return rowCount > 0
+  const result = dbRun('DELETE FROM tasks WHERE id = ?', [id])
+  return result.changes > 0
 }
 
 export async function runTask(id) {
-  const client = await getPool().connect()
-  try {
-    const { rows } = await client.query('SELECT * FROM tasks WHERE id = $1', [id])
-    if (!rows.length) return null
-    const task = rows[0]
-    if (!task.is_enabled) {
-      throw new Error('任务已禁用，无法运行')
-    }
+  const task = dbGet('SELECT * FROM tasks WHERE id = ?', [id])
+  if (!task) return null
+  if (!toBool(task.is_enabled)) {
+    throw new Error('任务已禁用，无法运行')
+  }
 
-    const jobName = task.default_job_name || `${task.name}_${Date.now()}`
-    const result = await submitJobToSeatunnel({
-      configFormat: task.config_format,
-      configContent: task.config_content,
-      jobName,
-    })
+  const jobName = task.default_job_name || `${task.name}_${Date.now()}`
+  const result = await submitJobToSeatunnel({
+    configFormat: task.config_format,
+    configContent: task.config_content,
+    jobName,
+  })
 
-    const jobId = String(result.jobId)
-    const submittedStatus = 'SUBMITTED'
+  const jobId = String(result.jobId)
+  const submittedStatus = 'SUBMITTED'
+  const ts = nowIso()
 
-    await client.query(
-      `UPDATE tasks SET
-         last_run_at = NOW(),
-         last_job_id = $2,
-         last_job_status = $3,
-         last_error_msg = NULL,
-         updated_at = NOW()
-       WHERE id = $1`,
-      [id, jobId, submittedStatus],
-    )
+  dbRun(
+    `UPDATE tasks SET
+       last_run_at = ?,
+       last_job_id = ?,
+       last_job_status = ?,
+       last_error_msg = NULL,
+       updated_at = ?
+     WHERE id = ?`,
+    [ts, jobId, submittedStatus, ts, id],
+  )
 
-    const { rows: runRows } = await client.query(
-      `INSERT INTO task_runs (task_id, job_id, job_name, status)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [id, jobId, result.jobName || jobName, submittedStatus],
-    )
+  const runRow = dbGet(
+    `INSERT INTO task_runs (task_id, job_id, job_name, status, started_at)
+     VALUES (?, ?, ?, ?, ?)
+     RETURNING *`,
+    [id, jobId, result.jobName || jobName, submittedStatus, ts],
+  )
 
-    return {
-      task: mapTask({
-        ...task,
-        last_run_at: new Date(),
-        last_job_id: jobId,
-        last_job_status: submittedStatus,
-        last_error_msg: null,
-        updated_at: new Date(),
-      }),
-      run: mapRun(runRows[0]),
-      submitResult: result,
-    }
-  } finally {
-    client.release()
+  return {
+    task: mapTask({
+      ...task,
+      last_run_at: ts,
+      last_job_id: jobId,
+      last_job_status: submittedStatus,
+      last_error_msg: null,
+      updated_at: ts,
+    }),
+    run: mapRun(runRow),
+    submitResult: result,
   }
 }
 
 export async function listTaskRuns(taskId, limit = 20) {
-  const client = await getPool().connect()
-  try {
-    const { rows } = await client.query(
-      'SELECT * FROM task_runs WHERE task_id = $1 ORDER BY started_at DESC LIMIT $2',
-      [taskId, limit],
-    )
+  const rows = dbAll(
+    'SELECT * FROM task_runs WHERE task_id = ? ORDER BY started_at DESC LIMIT ?',
+    [taskId, limit],
+  )
 
-    const synced = await Promise.all(
-      rows.map(async (row) => {
-        if (!isActiveJobStatus(row.status)) return row
-        try {
-          const info = await fetchJobInfo(row.job_id)
-          const status = String(info.jobStatus || row.status).toUpperCase()
-          const errorMsg = info.errorMsg || null
-          const finished = !isActiveJobStatus(status)
-          await client.query(
-            `UPDATE task_runs SET status = $1, error_msg = $2, finished_at = CASE WHEN $3 THEN NOW() ELSE finished_at END WHERE id = $4`,
-            [status, errorMsg, finished, row.id],
-          )
-          return { ...row, status, error_msg: errorMsg, finished_at: finished ? new Date() : row.finished_at }
-        } catch {
-          return row
-        }
-      }),
-    )
+  const synced = await Promise.all(
+    rows.map(async (row) => {
+      if (!isActiveJobStatus(row.status)) return row
+      try {
+        const info = await fetchJobInfo(row.job_id)
+        const status = String(info.jobStatus || row.status).toUpperCase()
+        const errorMsg = info.errorMsg || null
+        const finished = !isActiveJobStatus(status)
+        const finishedAt = finished ? nowIso() : row.finished_at
+        dbRun(
+          `UPDATE task_runs SET status = ?, error_msg = ?, finished_at = CASE WHEN ? = 1 THEN ? ELSE finished_at END WHERE id = ?`,
+          [status, errorMsg, finished ? 1 : 0, finishedAt, row.id],
+        )
+        return { ...row, status, error_msg: errorMsg, finished_at: finished ? finishedAt : row.finished_at }
+      } catch {
+        return row
+      }
+    }),
+  )
 
-    return synced.map(mapRun)
-  } finally {
-    client.release()
-  }
+  return synced.map(mapRun)
 }

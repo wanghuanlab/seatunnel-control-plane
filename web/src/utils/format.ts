@@ -1,13 +1,45 @@
-export function formatTimestamp(value?: string | number | null): string {
-  if (value == null || value === '') return '—'
+const DISPLAY_TIME_ZONE = 'Asia/Shanghai'
+
+function parseTimestamp(value?: string | number | null): Date | null {
+  if (value == null || value === '') return null
   if (typeof value === 'number') {
-    return new Date(value).toLocaleString('zh-CN')
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
   }
-  const numeric = Number(value)
-  if (!Number.isNaN(numeric) && String(numeric).length >= 12) {
-    return new Date(numeric).toLocaleString('zh-CN')
+
+  const trimmed = String(value).trim()
+  if (!trimmed) return null
+
+  const numeric = Number(trimmed)
+  if (!Number.isNaN(numeric) && /^\d+$/.test(trimmed) && trimmed.length >= 12) {
+    const date = new Date(numeric)
+    return Number.isNaN(date.getTime()) ? null : date
   }
-  return value
+
+  const date = new Date(trimmed)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+export function formatTimestamp(value?: string | number | null): string {
+  const date = parseTimestamp(value)
+  if (!date) return '—'
+
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: DISPLAY_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value]),
+  )
+
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`
 }
 
 export function formatDuration(ms?: number): string {

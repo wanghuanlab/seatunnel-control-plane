@@ -1,4 +1,4 @@
-const SEATUNNEL_BASE = process.env.SEATUNNEL_API_BASE || 'http://127.0.0.1:8080'
+import { getSeatunnelBase } from './settings.mjs'
 
 const ACTIVE_STATUSES = new Set(['RUNNING', 'PENDING', 'RESTORE', 'SUBMITTED'])
 
@@ -6,7 +6,16 @@ export function isActiveJobStatus(status) {
   return ACTIVE_STATUSES.has(String(status || '').toUpperCase())
 }
 
+function requireBase() {
+  const base = getSeatunnelBase()
+  if (!base) {
+    throw new Error('尚未配置 SeaTunnel API Base，请管理员在「系统设置」中配置')
+  }
+  return base
+}
+
 export async function submitJobToSeatunnel({ configFormat, configContent, jobName }) {
+  const SEATUNNEL_BASE = requireBase()
   const format = configFormat || 'hocon'
   const params = new URLSearchParams()
   if (jobName) params.set('jobName', jobName)
@@ -43,6 +52,7 @@ export async function submitJobToSeatunnel({ configFormat, configContent, jobNam
 }
 
 export async function fetchJobInfo(jobId) {
+  const SEATUNNEL_BASE = requireBase()
   const response = await fetch(`${SEATUNNEL_BASE}/job-info/${jobId}`, {
     headers: { Accept: 'application/json' },
   })

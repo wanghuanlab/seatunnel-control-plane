@@ -89,6 +89,28 @@ export interface PendingJobsResponse {
   }>
 }
 
+export interface WorkerResource {
+  address: string
+  tags?: Record<string, string>
+  totalSlots: number
+  freeSlots: number
+  usedSlots?: number
+  dynamicSlot: boolean
+  totalCpuCores?: number
+  availableCpuCores?: number
+  totalHeapMemoryBytes?: number
+  availableHeapMemoryBytes?: number
+  cpuUsage?: number
+  memUsage?: number
+  runningJobIds?: number[]
+}
+
+export interface WorkerResourcesResponse {
+  available: boolean
+  collectedAt?: number
+  workers: WorkerResource[]
+}
+
 export interface SystemMonitoringNode {
   isMaster?: string
   host?: string

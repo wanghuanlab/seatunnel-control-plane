@@ -4,20 +4,21 @@
   "private": true,
   "description": "SeaTunnel Zeta REST API V2 visualization console",
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "dev": "sh scripts/start.sh start",
     "dev:web": "npm --prefix web run dev",
     "dev:server": "node server/index.mjs",
+    "stop": "sh scripts/start.sh stop",
+    "restart": "sh scripts/start.sh restart",
+    "status": "sh scripts/start.sh status",
     "build": "npm --prefix web run build",
     "start": "NODE_ENV=production node server/index.mjs",
     "setup": "npm install && npm --prefix web install",
     "init-db": "node scripts/init-db.mjs"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.10.0",
     "cron-parser": "^4.9.0",
-    "node-cron": "^3.0.3",
-    "pg": "^8.13.1"
-  },
-  "devDependencies": {
-    "concurrently": "^9.1.2"
+    "node-cron": "^3.0.3"
   }
 }

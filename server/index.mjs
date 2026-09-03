@@ -2,13 +2,16 @@ import { createServer } from 'node:http'
 import { existsSync, statSync, createReadStream } from 'node:fs'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkDbConnection, initSchema } from './db.mjs'
+import { handleAuthApi, handleSettingsApi, handleUsersApi, requireAuth } from './api-auth.mjs'
+import { seedDefaultAdmin } from './auth.mjs'
+import { checkDbConnection, getDbPath, initSchema } from './db.mjs'
+import { sendJson } from './http-utils.mjs'
 import { reloadScheduler } from './scheduler.mjs'
+import { getSeatunnelBase } from './settings.mjs'
 import { handleTasksApi } from './tasks-router.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const PORT = Number(process.env.EDP_VIZ_PORT || 8800)
-const SEATUNNEL_BASE = process.env.SEATUNNEL_API_BASE || 'http://127.0.0.1:8080'
+const PREFERRED_PORT = Number(process.env.EDP_VIZ_PORT || 8800)
 const WEB_DIST = join(__dirname, '../web/dist')
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -23,8 +26,16 @@ const MIME = {
 }
 
 async function proxyToSeatunnel(req, res, targetPath, body) {
-  const url = `${SEATUNNEL_BASE}${targetPath}`
-  const headers = { ...req.headers, host: new URL(SEATUNNEL_BASE).host }
+  const base = getSeatunnelBase()
+  if (!base) {
+    sendJson(res, 503, {
+      error: '尚未配置 SeaTunnel API Base，请管理员在「系统设置」中配置',
+    })
+    return
+  }
+
+  const url = `${base}${targetPath}`
+  const headers = { ...req.headers, host: new URL(base).host }
   delete headers['content-length']
 
   try {
@@ -63,27 +74,49 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`)
   const pathname = url.pathname
 
-  if (pathname.startsWith('/api/tasks')) {
-    try {
+  try {
+    if (pathname.startsWith('/api/auth')) {
+      const handled = await handleAuthApi(req, res, pathname)
+      if (handled) return
+      sendJson(res, 404, { error: 'Not found' })
+      return
+    }
+
+    if (pathname.startsWith('/api/settings')) {
+      const handled = await handleSettingsApi(req, res, pathname)
+      if (handled) return
+      sendJson(res, 404, { error: 'Not found' })
+      return
+    }
+
+    if (pathname.startsWith('/api/users')) {
+      const handled = await handleUsersApi(req, res, pathname)
+      if (handled) return
+      sendJson(res, 404, { error: 'Not found' })
+      return
+    }
+
+    if (pathname.startsWith('/api/tasks')) {
+      if (!requireAuth(req, res)) return
       const handled = await handleTasksApi(req, res, pathname, url.searchParams)
       if (handled) return
-      res.writeHead(404, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Not found' }))
-    } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: String(error.message || error) }))
+      sendJson(res, 404, { error: 'Not found' })
+      return
     }
-    return
-  }
 
-  if (pathname.startsWith('/api/seatunnel')) {
-    const targetPath = pathname.replace(/^\/api\/seatunnel/, '') + url.search
-    const chunks = []
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      for await (const chunk of req) chunks.push(chunk)
+    if (pathname.startsWith('/api/seatunnel')) {
+      if (!requireAuth(req, res)) return
+      const targetPath = pathname.replace(/^\/api\/seatunnel/, '') + url.search
+      const chunks = []
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        for await (const chunk of req) chunks.push(chunk)
+      }
+      const body = chunks.length ? Buffer.concat(chunks) : undefined
+      await proxyToSeatunnel(req, res, targetPath, body)
+      return
     }
-    const body = chunks.length ? Buffer.concat(chunks) : undefined
-    await proxyToSeatunnel(req, res, targetPath, body)
+  } catch (error) {
+    sendJson(res, 500, { error: String(error.message || error) })
     return
   }
 
@@ -92,26 +125,65 @@ const server = createServer(async (req, res) => {
     return
   }
 
-  res.writeHead(200, { 'Content-Type': 'application/json' })
-  res.end(JSON.stringify({ status: 'ok', proxy: SEATUNNEL_BASE, mode: isProd ? 'production' : 'dev-proxy' }))
+  sendJson(res, 200, {
+    status: 'ok',
+    proxy: getSeatunnelBase(),
+    mode: isProd ? 'production' : 'dev-proxy',
+  })
 })
+
+function listen(port) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off('listening', onListening)
+      reject(error)
+    }
+    const onListening = () => {
+      server.off('error', onError)
+      resolve(port)
+    }
+    server.once('error', onError)
+    server.once('listening', onListening)
+    server.listen(port, '127.0.0.1')
+  })
+}
+
+async function listenWithFallback(startPort) {
+  let port = startPort
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      return await listen(port)
+    } catch (error) {
+      if (error?.code !== 'EADDRINUSE') throw error
+      console.warn(`Port ${port} in use, trying ${port + 1}`)
+      port += 1
+    }
+  }
+  throw new Error(`Unable to bind API server near port ${startPort}`)
+}
 
 async function bootstrap() {
   try {
-    await initSchema()
-    await checkDbConnection()
-    console.log('Task DB connected and schema ready')
+    initSchema()
+    const seeded = seedDefaultAdmin()
+    checkDbConnection()
+    console.log(`Task SQLite ready: ${getDbPath()}`)
+    if (seeded) console.log('Default admin user created: admin / 123456')
+    const base = getSeatunnelBase()
+    if (!base) {
+      console.warn('SeaTunnel API Base 未配置，请登录后在「系统设置」中填写')
+    } else {
+      console.log(`SeaTunnel API Base: ${base}`)
+    }
     await reloadScheduler()
   } catch (error) {
     console.warn('Task DB unavailable:', error.message)
-    console.warn('Run: npm run init-db')
   }
 
-  server.listen(PORT, '127.0.0.1', () => {
-    console.log(`EDP Visualization proxy listening on http://127.0.0.1:${PORT}`)
-    console.log(`Forwarding /api/seatunnel/* -> ${SEATUNNEL_BASE}`)
-    console.log(`Task API: /api/tasks/*`)
-  })
+  const port = await listenWithFallback(PREFERRED_PORT)
+  console.log(`EDP Visualization proxy listening on http://127.0.0.1:${port}`)
+  console.log(`Task API: /api/tasks/*`)
+  console.log(`Auth API: /api/auth/*`)
 }
 
 bootstrap()
