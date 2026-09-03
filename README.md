@@ -41,18 +41,24 @@ Node.js Console API（默认 :8800）
 
 前置条件：Node.js（建议 LTS）以及一个已启动且开启 HTTP API 的 SeaTunnel Zeta 集群。
 
+### 使用启动脚本（推荐）
+
 ```bash
 cd seatunnel-control-plane
-npm run setup
-npm run init-db
-npm run dev
+sh scripts/start.sh start
+
+# 确认实际监听地址、进程和日志位置
+sh scripts/start.sh status
 ```
 
-启动脚本会从 API `8800`、Web `5174` 开始寻找可用端口。通过下面命令确认实际地址：
+首次启动时，脚本会自动安装缺失的根目录和 `web/` 依赖，初始化 SQLite schema 与默认管理员，并从 API `8800`、Web `5174` 起自动选择空闲端口。请始终以 `status` 输出的地址为准。
+
+日常管理统一使用脚本：
 
 ```bash
-npm run status
-# 或：scripts/start.sh status
+sh scripts/start.sh status    # 查看实际端口、PID 和日志路径
+sh scripts/start.sh restart   # 重启 API 与 Web
+sh scripts/start.sh stop      # 停止 API 与 Web
 ```
 
 首次使用：
@@ -62,15 +68,19 @@ npm run status
 3. 立即在侧栏修改默认密码。
 4. 在 **系统设置 → SeaTunnel 连接** 中填写 API Base，例如 `http://127.0.0.1:8080`，保存时会进行连通性探测。
 
-常用命令：
+### npm 等价命令
+
+需要单独启动或排查某个进程时，可使用 npm 命令：
 
 ```bash
-npm run dev       # 启动 API 和 Web 开发服务
+npm run dev        # 等价于 sh scripts/start.sh start
+npm run dev:web    # 仅启动 Vite 前端
+npm run dev:server # 仅启动 Node API
 npm run status    # 查看端口、PID 与运行状态
 npm run restart   # 重启
 npm run stop      # 停止
 npm run build     # 构建前端静态资源
-npm run init-db   # 初始化 SQLite schema 和默认管理员
+npm run init-db   # 手动初始化/校验 SQLite schema
 ```
 
 ## 数据与配置
