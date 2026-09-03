@@ -1,18 +1,22 @@
-import { FormEvent, useState, type ReactNode } from 'react'
+import { FormEvent, useEffect, useState, type ReactNode } from 'react'
 import {
   CaretDown,
   ChartLineUp,
   Command,
   FileText,
   GearSix,
+  Key,
   ListChecks,
   MagnifyingGlass,
+  Moon,
   PaperPlaneTilt,
   Pulse,
   Plus,
   Queue,
+  SignOut,
   SlidersHorizontal,
   Toolbox,
+  Sun,
 } from '@phosphor-icons/react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
@@ -34,16 +38,43 @@ const OPERATIONS_ITEMS = [
 export function Layout({ children }: { children: ReactNode }) {
   const { user, isAdmin, health, logout, changePassword } = useAuth()
   const navigate = useNavigate()
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [showCommand, setShowCommand] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (
+    window.localStorage.getItem('control-plane-theme') === 'dark' ? 'dark' : 'light'
+  ))
+
+  useEffect(() => {
+    if (!showPasswordModal) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePasswordModal()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [showPasswordModal])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('control-plane-theme', theme)
+  }, [theme])
 
   const onLogout = async () => {
+    setShowAccountMenu(false)
     await logout()
     navigate('/login', { replace: true })
+  }
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false)
+    setOldPassword('')
+    setNewPassword('')
+    setPasswordMessage(null)
+    setPasswordError(null)
   }
 
   const onChangePassword = async (event: FormEvent) => {
@@ -73,7 +104,10 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
           <div className="brand-mark">ZETA · REST API V2</div>
         </div>
-        <nav className="nav-list" onClick={() => setShowCommand(false)}>
+        <nav className="nav-list" onClick={() => {
+          setShowCommand(false)
+          setShowAccountMenu(false)
+        }}>
           <div className="nav-section-label">运行空间</div>
           {NAV_ITEMS.map((item) => (
             <NavLink
@@ -108,39 +142,13 @@ export function Layout({ children }: { children: ReactNode }) {
           )}
         </nav>
 
-        <div className="sidebar-user">
-          <div className="sidebar-user-avatar">{user?.username.slice(0, 1).toUpperCase()}</div>
-          <div className="sidebar-user-info">
-            <div className="sidebar-user-name">{user?.username}</div>
-            <div className="sidebar-user-role">{user?.role === 'admin' ? '平台管理员' : '操作用户'}</div>
-          </div>
-          <CaretDown className="sidebar-user-caret" size={16} />
-          <div className="actions" style={{ marginTop: 10 }}>
-            <button className="btn" type="button" onClick={() => setShowPassword((v) => !v)}>
-              修改密码
-            </button>
-            <button className="btn" type="button" onClick={onLogout}>退出</button>
-          </div>
-          {showPassword && (
-            <form className="form-grid" style={{ marginTop: 12 }} onSubmit={onChangePassword}>
-              <div className="form-row">
-                <label htmlFor="oldPassword">当前密码</label>
-                <input id="oldPassword" type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required />
-              </div>
-              <div className="form-row">
-                <label htmlFor="newPasswordSide">新密码</label>
-                <input id="newPasswordSide" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-              </div>
-              <button className="btn primary" type="submit">保存密码</button>
-              {passwordMessage && <div style={{ fontSize: 12, color: 'var(--success)' }}>{passwordMessage}</div>}
-              {passwordError && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{passwordError}</div>}
-            </form>
-          )}
-        </div>
       </aside>
       <main className="main">
         <header className="app-topbar">
-          <button className="command-trigger" type="button" onClick={() => setShowCommand((value) => !value)}>
+          <button className="command-trigger" type="button" onClick={() => {
+            setShowCommand((value) => !value)
+            setShowAccountMenu(false)
+          }}>
             <MagnifyingGlass size={17} />
             <span>搜索作业或快速操作</span>
             <kbd><Command size={12} /> K</kbd>
@@ -150,7 +158,53 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className={`connection-dot${health?.reachable ? ' live' : ''}`} />
               {health?.reachable ? '集群已连接' : '连接待配置'}
             </div>
-            <Link className="btn primary compact" to="/submit" onClick={() => setShowCommand(false)}><Plus size={16} weight="bold" /> 提交作业</Link>
+            <Link className="btn primary compact" to="/submit" onClick={() => {
+              setShowCommand(false)
+              setShowAccountMenu(false)
+            }}><Plus size={16} weight="bold" /> 提交作业</Link>
+            <button
+              className="icon-button theme-toggle"
+              type="button"
+              onClick={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+              aria-label={theme === 'dark' ? '切换到明亮模式' : '切换到暗黑模式'}
+              title={theme === 'dark' ? '切换到明亮模式' : '切换到暗黑模式'}
+            >
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+            <div className="account-control">
+              <button
+                className="account-trigger"
+                type="button"
+                aria-expanded={showAccountMenu}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setShowAccountMenu((value) => !value)
+                  setShowCommand(false)
+                }}
+              >
+                <span className="account-avatar">{user?.username.slice(0, 1).toUpperCase()}</span>
+                <span className="account-identity">
+                  <strong>{user?.username}</strong>
+                  <small>{user?.role === 'admin' ? '平台管理员' : '操作用户'}</small>
+                </span>
+                <CaretDown size={14} weight="bold" />
+              </button>
+              {showAccountMenu && (
+                <div className="account-menu" role="menu">
+                  <div className="account-menu-summary">
+                    <span className="account-avatar">{user?.username.slice(0, 1).toUpperCase()}</span>
+                    <span><strong>{user?.username}</strong><small>{user?.role === 'admin' ? '平台管理员' : '操作用户'}</small></span>
+                  </div>
+                  <div className="account-menu-actions">
+                    <button type="button" role="menuitem" onClick={() => {
+                      setShowAccountMenu(false)
+                      setShowPasswordModal(true)
+                    }}><Key size={16} /> 修改密码</button>
+                    <button type="button" role="menuitem" className="account-logout" onClick={onLogout}><SignOut size={16} /> 退出登录</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           {showCommand && (
             <div className="command-menu">
@@ -173,6 +227,37 @@ export function Layout({ children }: { children: ReactNode }) {
         )}
         {children}
       </main>
+      {showPasswordModal && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={closePasswordModal}>
+          <section className="password-modal" role="dialog" aria-modal="true" aria-labelledby="password-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="password-modal-header">
+              <div>
+                <span className="modal-kicker">账户安全</span>
+                <h2 id="password-modal-title">修改密码</h2>
+                <p>更新后，请使用新密码重新登录。</p>
+              </div>
+              <button className="icon-button" type="button" aria-label="关闭修改密码弹窗" onClick={closePasswordModal}>×</button>
+            </div>
+            <form className="password-form" onSubmit={onChangePassword}>
+              <div className="form-row">
+                <label htmlFor="oldPassword">当前密码</label>
+                <input id="oldPassword" autoComplete="current-password" type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required />
+              </div>
+              <div className="form-row">
+                <label htmlFor="newPassword">新密码</label>
+                <input id="newPassword" autoComplete="new-password" type="password" minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                <span className="password-hint">至少 6 位字符</span>
+              </div>
+              {passwordMessage && <div className="password-feedback success">{passwordMessage}</div>}
+              {passwordError && <div className="password-feedback error">{passwordError}</div>}
+              <div className="password-modal-actions">
+                <button className="btn ghost" type="button" onClick={closePasswordModal}>取消</button>
+                <button className="btn primary" type="submit">保存新密码</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

@@ -6,6 +6,9 @@ import { AuthProvider } from './auth/AuthContext'
 import './styles/global.css'
 import './styles/control-plane.css'
 
+const savedTheme = window.localStorage.getItem('control-plane-theme')
+document.documentElement.dataset.theme = savedTheme === 'dark' ? 'dark' : 'light'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

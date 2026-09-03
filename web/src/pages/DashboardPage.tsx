@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import {
   ArrowRight,
   ClockCountdown,
-  CloudArrowUp,
   DotsThree,
   Gauge,
   PlayCircle,
@@ -111,7 +110,6 @@ export function DashboardPage() {
           <div className={`signal-metric ${pendingCount ? 'attention' : ''}`}><span>队列压力</span><strong>{pendingCount}</strong><small>{pendingCount ? '等待资源分配' : '当前队列畅通'}</small></div>
           <div className={`signal-metric ${failedCount ? 'danger' : ''}`}><span>失败作业</span><strong>{failedCount}</strong><small>历史累计</small></div>
           <div className="signal-metric"><span>引擎版本</span><strong className="version-value">{cluster.projectVersion}</strong><small>Git {cluster.gitCommitAbbrev}</small></div>
-          <Link to="/submit" className="btn primary signal-cta"><CloudArrowUp size={18} weight="bold" /> 提交作业</Link>
         </section>
 
         <section className="workflow-board">
