@@ -13,6 +13,8 @@
     "init-db": "node scripts/init-db.mjs"
   },
   "dependencies": {
+    "cron-parser": "^4.9.0",
+    "node-cron": "^3.0.3",
     "pg": "^8.13.1"
   },
   "devDependencies": {

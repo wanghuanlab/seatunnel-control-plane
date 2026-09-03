@@ -1,4 +1,5 @@
 import { getPool } from './db.mjs'
+import { attachScheduleSummary } from './schedules.mjs'
 import { fetchJobInfo, isActiveJobStatus, submitJobToSeatunnel } from './seatunnel.mjs'
 
 function mapTask(row) {
@@ -70,7 +71,8 @@ export async function listTasks({ sync = true } = {}) {
     const synced = sync
       ? await Promise.all(rows.map((row) => syncTaskStatus(client, row)))
       : rows
-    return synced.map(mapTask)
+    const tasks = synced.map(mapTask)
+    return attachScheduleSummary(tasks)
   } finally {
     client.release()
   }
@@ -82,7 +84,8 @@ export async function getTask(id) {
     const { rows } = await client.query('SELECT * FROM tasks WHERE id = $1', [id])
     if (!rows.length) return null
     const synced = await syncTaskStatus(client, rows[0])
-    return mapTask(synced)
+    const [task] = await attachScheduleSummary([mapTask(synced)])
+    return task
   } finally {
     client.release()
   }

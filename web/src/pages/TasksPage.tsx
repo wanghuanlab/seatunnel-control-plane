@@ -71,6 +71,8 @@ export function TasksPage() {
                     <tr>
                       <th>任务名称</th>
                       <th>格式</th>
+                      <th>定时调度</th>
+                      <th>下次执行</th>
                       <th>创建时间</th>
                       <th>最后执行</th>
                       <th>当前状态</th>
@@ -86,6 +88,21 @@ export function TasksPage() {
                           {task.description && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{task.description}</div>}
                         </td>
                         <td className="mono">{task.configFormat}</td>
+                        <td>
+                          {task.schedule?.enabled ? (
+                            <Link to={`/tasks/${task.id}?tab=schedule`} title={task.schedule.cronExpr}>
+                              <span className="schedule-badge enabled">已启用</span>
+                              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+                                {task.schedule.description}
+                              </div>
+                            </Link>
+                          ) : (
+                            <Link to={`/tasks/${task.id}?tab=schedule`}>
+                              <span className="schedule-badge">未启用</span>
+                            </Link>
+                          )}
+                        </td>
+                        <td>{formatTimestamp(task.schedule?.nextRunAt ?? null)}</td>
                         <td>{formatTimestamp(task.createdAt)}</td>
                         <td>{formatTimestamp(task.lastRunAt)}</td>
                         <td><StatusBadge status={task.lastJobStatus} /></td>

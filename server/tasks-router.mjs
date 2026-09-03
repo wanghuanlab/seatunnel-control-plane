@@ -7,6 +7,8 @@ import {
   runTask,
   updateTask,
 } from './tasks.mjs'
+import { getTaskSchedule, saveTaskSchedule } from './schedules.mjs'
+import { reloadScheduler } from './scheduler.mjs'
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -33,6 +35,31 @@ function sendJson(res, status, payload) {
 }
 
 export async function handleTasksApi(req, res, pathname, searchParams) {
+  const scheduleMatch = pathname.match(/^\/api\/tasks\/(\d+)\/schedule$/)
+  if (scheduleMatch) {
+    const id = Number(scheduleMatch[1])
+    if (req.method === 'GET') {
+      const schedule = await getTaskSchedule(id)
+      if (!schedule) {
+        sendJson(res, 404, { error: 'Task not found' })
+        return true
+      }
+      sendJson(res, 200, schedule)
+      return true
+    }
+    if (req.method === 'PUT') {
+      try {
+        const body = await readJsonBody(req)
+        const schedule = await saveTaskSchedule(id, body)
+        await reloadScheduler()
+        sendJson(res, 200, schedule)
+      } catch (error) {
+        sendJson(res, 400, { error: String(error.message || error) })
+      }
+      return true
+    }
+  }
+
   const runMatch = pathname.match(/^\/api\/tasks\/(\d+)\/run$/)
   if (runMatch && req.method === 'POST') {
     try {

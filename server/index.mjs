@@ -3,6 +3,7 @@ import { existsSync, statSync, createReadStream } from 'node:fs'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkDbConnection, initSchema } from './db.mjs'
+import { reloadScheduler } from './scheduler.mjs'
 import { handleTasksApi } from './tasks-router.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -100,6 +101,7 @@ async function bootstrap() {
     await initSchema()
     await checkDbConnection()
     console.log('Task DB connected and schema ready')
+    await reloadScheduler()
   } catch (error) {
     console.warn('Task DB unavailable:', error.message)
     console.warn('Run: npm run init-db')

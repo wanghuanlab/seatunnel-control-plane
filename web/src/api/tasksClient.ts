@@ -1,4 +1,4 @@
-import type { RunTaskResult, Task, TaskPayload, TaskRun } from '../types/tasks'
+import type { RunTaskResult, Task, TaskPayload, TaskRun, TaskSchedule, TaskSchedulePayload } from '../types/tasks'
 
 const BASE = '/api/tasks'
 
@@ -36,4 +36,9 @@ export const tasksApi = {
   run: (id: number) => request<RunTaskResult>(`/${id}/run`, { method: 'POST' }),
 
   runs: (id: number) => request<TaskRun[]>(`/${id}/runs`),
+
+  getSchedule: (id: number) => request<TaskSchedule>(`/${id}/schedule`),
+
+  saveSchedule: (id: number, body: TaskSchedulePayload) =>
+    request<TaskSchedule>(`/${id}/schedule`, { method: 'PUT', body: JSON.stringify(body) }),
 }

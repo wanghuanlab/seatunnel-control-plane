@@ -51,6 +51,21 @@ CREATE TABLE IF NOT EXISTS task_runs (
 
 CREATE INDEX IF NOT EXISTS idx_tasks_updated_at ON tasks(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_task_runs_task_id ON task_runs(task_id, started_at DESC);
+
+CREATE TABLE IF NOT EXISTS task_schedules (
+  task_id BIGINT PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  cron_expr VARCHAR(128) NOT NULL DEFAULT '0 9 * * *',
+  cron_config JSONB NOT NULL DEFAULT '{"preset":"daily","hour":9,"minuteOfHour":0,"daysOfWeek":[1,2,3,4,5],"dayOfMonth":1,"minute":0,"customExpr":"0 9 * * *"}'::jsonb,
+  timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Shanghai',
+  next_run_at TIMESTAMPTZ,
+  last_trigger_at TIMESTAMPTZ,
+  last_trigger_status VARCHAR(32),
+  last_trigger_error TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_schedules_enabled ON task_schedules(enabled, next_run_at);
 `
 
 export async function initSchema() {

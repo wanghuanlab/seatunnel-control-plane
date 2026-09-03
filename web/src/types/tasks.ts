@@ -1,5 +1,40 @@
 export type TaskConfigFormat = 'json' | 'hocon' | 'sql'
 
+export type CronPreset = 'every_minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom'
+
+export interface CronEditorConfig {
+  preset: CronPreset
+  minute?: number
+  hour?: number
+  minuteOfHour?: number
+  daysOfWeek?: number[]
+  dayOfMonth?: number
+  customExpr?: string
+}
+
+export interface TaskScheduleSummary {
+  taskId: number
+  enabled: boolean
+  cronExpr: string
+  cronConfig: CronEditorConfig
+  timezone: string
+  description: string
+  nextRunAt: string | null
+  lastTriggerAt: string | null
+  lastTriggerStatus: string | null
+}
+
+export type TaskSchedule = TaskScheduleSummary & {
+  lastTriggerError: string | null
+  updatedAt: string
+}
+
+export interface TaskSchedulePayload {
+  enabled: boolean
+  timezone: string
+  cronConfig: CronEditorConfig
+}
+
 export interface Task {
   id: number
   name: string
@@ -14,6 +49,7 @@ export interface Task {
   lastJobStatus: string
   lastErrorMsg: string | null
   isEnabled: boolean
+  schedule: TaskScheduleSummary | null
 }
 
 export interface TaskRun {

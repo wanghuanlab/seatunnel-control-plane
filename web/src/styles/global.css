@@ -497,6 +497,112 @@ table.data-table tr:hover td {
   font-size: 12px;
 }
 
+.cron-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.cron-preset-card {
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cron-preset-card:hover,
+.cron-preset-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.cron-preset-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cron-preset-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cron-time-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cron-weekday-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cron-weekday {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cron-weekday.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.cron-weekday input {
+  accent-color: var(--accent);
+}
+
+.cron-preview {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cron-preview-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.cron-preview-expr {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.cron-help {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.schedule-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.schedule-badge.enabled {
+  border-color: rgba(34, 197, 94, 0.35);
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.08);
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
