@@ -20,10 +20,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return apiRequest<T>(`${BASE}${path}`, init)
 }
 
-function unwrapJobList(payload: JobSummary[] | PaginatedJobList): JobSummary[] {
-  if (Array.isArray(payload)) return payload
-  if (payload && Array.isArray(payload.data)) return payload.data
-  return []
+function normalizeJobPage(payload: JobSummary[] | PaginatedJobList): PaginatedJobList {
+  if (Array.isArray(payload)) return { data: payload, total: payload.length }
+  if (payload && Array.isArray(payload.data)) {
+    return {
+      data: payload.data,
+      total: Number.isFinite(payload.total) ? payload.total : payload.data.length,
+      page: payload.page,
+      rows: payload.rows,
+    }
+  }
+  return { data: [], total: 0 }
 }
 
 export const seatunnelApi = {
@@ -33,8 +40,8 @@ export const seatunnelApi = {
     return request<ClusterOverview>(`/overview${query ? `?${query}` : ''}`)
   },
 
-  getRunningJobs: async (page = 1, rows = 50) =>
-    unwrapJobList(await request<JobSummary[] | PaginatedJobList>(`/running-jobs?page=${page}&rows=${rows}`)),
+  getRunningJobs: async (page = 1, rows = 20) =>
+    normalizeJobPage(await request<JobSummary[] | PaginatedJobList>(`/running-jobs?page=${page}&rows=${rows}`)),
 
   getPendingJobs: (options?: { jobId?: string; limit?: number; pretty?: boolean }) => {
     const params = new URLSearchParams()
@@ -47,9 +54,9 @@ export const seatunnelApi = {
 
   getJobInfo: (jobId: string) => request<JobDetail>(`/job-info/${jobId}`),
 
-  getFinishedJobs: async (state?: FinishedJobState, page = 1, rows = 50) => {
+  getFinishedJobs: async (state?: FinishedJobState, page = 1, rows = 20) => {
     const suffix = state ? `/${state}` : ''
-    return unwrapJobList(
+    return normalizeJobPage(
       await request<JobSummary[] | PaginatedJobList>(`/finished-jobs${suffix}?page=${page}&rows=${rows}`),
     )
   },

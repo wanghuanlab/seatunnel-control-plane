@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { JobSummary } from '../types/api'
 import { formatTimestamp, getMetricReadWrite } from '../utils/format'
+import { useI18n } from '../i18n'
 import { StatusBadge } from './StatusBadge'
 
 export function JobTable({
@@ -18,6 +19,7 @@ export function JobTable({
   onToggle?: (jobId: string, checked: boolean) => void
   onStop?: (jobId: string) => void
 }) {
+  const { t } = useI18n()
   const rows = Array.isArray(jobs) ? jobs : []
 
   return (
@@ -26,12 +28,12 @@ export function JobTable({
         <thead>
           <tr>
             {selectable && <th />}
-            <th>Job ID</th>
-            <th>名称</th>
-            <th>状态</th>
-            <th>创建时间</th>
-            <th>读取/写入</th>
-            {showActions && <th>操作</th>}
+            <th>{t('jobs.colId')}</th>
+            <th>{t('jobs.colName')}</th>
+            <th>{t('jobs.colStatus')}</th>
+            <th>{t('jobs.colCreated')}</th>
+            <th>{t('jobs.colIO')}</th>
+            {showActions && <th>{t('app.actions')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -59,7 +61,7 @@ export function JobTable({
                 {showActions && (
                   <td>
                     <button className="btn danger" type="button" onClick={() => onStop?.(job.jobId)}>
-                      停止
+                      {t('jobs.stop')}
                     </button>
                   </td>
                 )}

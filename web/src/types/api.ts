@@ -163,4 +163,6 @@ export type FinishedJobState = 'FINISHED' | 'CANCELED' | 'FAILED' | 'SAVEPOINT_D
 export interface PaginatedJobList {
   data: JobSummary[]
   total: number
+  page?: number
+  rows?: number
 }

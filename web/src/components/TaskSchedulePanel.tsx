@@ -4,9 +4,11 @@ import { AsyncState, useAsync } from '../components/AsyncState'
 import { CronEditor } from '../components/CronEditor'
 import { defaultCronConfig } from '../utils/cron'
 import { formatTimestamp } from '../utils/format'
+import { useI18n } from '../i18n'
 import type { CronEditorConfig, TaskSchedule } from '../types/tasks'
 
 export function TaskSchedulePanel({ taskId }: { taskId: number }) {
+  const { t } = useI18n()
   const scheduleState = useAsync(() => tasksApi.getSchedule(taskId), [taskId])
   const [enabled, setEnabled] = useState(false)
   const [timezone, setTimezone] = useState('Asia/Shanghai')
@@ -36,7 +38,7 @@ export function TaskSchedulePanel({ taskId }: { taskId: number }) {
       setEnabled(saved.enabled)
       setTimezone(saved.timezone)
       setConfig(saved.cronConfig)
-      setMessage('调度配置已保存')
+      setMessage(t('schedule.saved'))
       await scheduleState.reload()
     } catch (error) {
       setMessage(String(error))
@@ -48,27 +50,27 @@ export function TaskSchedulePanel({ taskId }: { taskId: number }) {
   return (
     <section className="panel">
       <div className="panel-header">
-        <h2 className="panel-title">定时调度</h2>
+        <h2 className="panel-title">{t('schedule.title')}</h2>
         <label className="inline-check">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-          启用定时调度
+          {t('schedule.enable')}
         </label>
       </div>
       <div className="panel-body">
-        <AsyncState loading={scheduleState.loading} error={scheduleState.error} data={scheduleState.data} emptyText="无法加载调度配置">
+        <AsyncState loading={scheduleState.loading} error={scheduleState.error} data={scheduleState.data} emptyText={t('schedule.loadError')}>
           {(schedule: TaskSchedule) => (
             <>
               <div className="metric-grid" style={{ marginBottom: 18 }}>
                 <div className="metric-item">
-                  <div className="metric-key">下次执行</div>
+                  <div className="metric-key">{t('schedule.nextRun')}</div>
                   <div className="metric-value">{formatTimestamp(schedule.nextRunAt)}</div>
                 </div>
                 <div className="metric-item">
-                  <div className="metric-key">上次触发</div>
+                  <div className="metric-key">{t('schedule.lastTrigger')}</div>
                   <div className="metric-value">{formatTimestamp(schedule.lastTriggerAt)}</div>
                 </div>
                 <div className="metric-item">
-                  <div className="metric-key">上次触发结果</div>
+                  <div className="metric-key">{t('schedule.lastResult')}</div>
                   <div className="metric-value">{schedule.lastTriggerStatus || '—'}</div>
                 </div>
               </div>
@@ -86,12 +88,12 @@ export function TaskSchedulePanel({ taskId }: { taskId: number }) {
 
               <div className="actions" style={{ marginTop: 16 }}>
                 <button className="btn primary" type="button" disabled={saving} onClick={save}>
-                  {saving ? '保存中…' : '保存调度'}
+                  {saving ? t('schedule.saving') : t('schedule.save')}
                 </button>
               </div>
 
               {message && (
-                <div className={message.includes('已保存') ? 'panel' : 'error'} style={{ marginTop: 16, padding: 12 }}>
+                <div className={message.includes(t('schedule.saved')) ? 'panel' : 'error'} style={{ marginTop: 16, padding: 12 }}>
                   {message}
                 </div>
               )}

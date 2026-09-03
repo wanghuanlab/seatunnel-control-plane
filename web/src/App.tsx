@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import { Layout } from './components/Layout'
+import { useI18n } from './i18n'
 import { DashboardPage } from './pages/DashboardPage'
 import { JobDetailPage } from './pages/JobDetailPage'
 import { JobsPage } from './pages/JobsPage'
@@ -17,9 +18,10 @@ import { ToolsPage } from './pages/ToolsPage'
 
 function ProtectedApp() {
   const { user, loading } = useAuth()
+  const { t } = useI18n()
 
   if (loading) {
-    return <div className="login-shell"><div className="loading">加载中…</div></div>
+    return <div className="login-shell"><div className="loading">{t('app.loading')}</div></div>
   }
 
   if (!user) {

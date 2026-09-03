@@ -4,25 +4,30 @@ import { tasksApi } from '../api/tasksClient'
 import { AsyncState } from '../components/AsyncState'
 import { StatusBadge } from '../components/StatusBadge'
 import { usePolling } from '../hooks/usePolling'
+import { useI18n } from '../i18n'
 import { formatTimestamp } from '../utils/format'
 import type { Task } from '../types/tasks'
 
 export function TasksPage() {
+  const { t } = useI18n()
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
+  const [messageOk, setMessageOk] = useState(false)
   const [runningId, setRunningId] = useState<number | null>(null)
 
   const tasks = usePolling(() => tasksApi.list(true), [], 10000, autoRefresh)
 
   const handleRun = async (task: Task) => {
-    if (!window.confirm(`确认运行任务「${task.name}」？`)) return
+    if (!window.confirm(t('tasks.confirmRun', { name: task.name }))) return
     setRunningId(task.id)
     setMessage(null)
     try {
       const result = await tasksApi.run(task.id)
-      setMessage(`已提交：${result.submitResult.jobName} (${result.submitResult.jobId})`)
+      setMessageOk(true)
+      setMessage(t('tasks.submitted', { name: result.submitResult.jobName, id: result.submitResult.jobId }))
       await tasks.reload()
     } catch (error) {
+      setMessageOk(false)
       setMessage(String(error))
     } finally {
       setRunningId(null)
@@ -30,7 +35,7 @@ export function TasksPage() {
   }
 
   const handleDelete = async (task: Task) => {
-    if (!window.confirm(`确认删除任务「${task.name}」？`)) return
+    if (!window.confirm(t('tasks.confirmDelete', { name: task.name }))) return
     await tasksApi.delete(task.id)
     await tasks.reload()
   }
@@ -39,45 +44,45 @@ export function TasksPage() {
     <>
       <header className="page-header">
         <div>
-          <h1 className="page-title">任务管理</h1>
-          <p className="page-desc">维护作业模板配置，一键运行提交到 SeaTunnel，并跟踪最近执行状态。</p>
+          <h1 className="page-title">{t('tasks.title')}</h1>
+          <p className="page-desc">{t('tasks.desc')}</p>
         </div>
         <div className="actions">
           <label className="inline-check">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-            自动刷新
+            {t('app.autoRefresh')}
           </label>
-          <Link className="btn primary" to="/tasks/new">新建任务</Link>
-          <button className="btn" type="button" onClick={() => tasks.reload()}>刷新</button>
+          <Link className="btn primary" to="/tasks/new">{t('tasks.create')}</Link>
+          <button className="btn" type="button" onClick={() => tasks.reload()}>{t('app.refresh')}</button>
         </div>
       </header>
 
       {message && (
-        <div className={message.includes('已提交') ? 'panel' : 'error'} style={{ marginBottom: 16, padding: 16 }}>
+        <div className={messageOk ? 'panel' : 'error'} style={{ marginBottom: 16, padding: 16 }}>
           {message}
         </div>
       )}
 
       <section className="panel">
         <div className="panel-header">
-          <h2 className="panel-title">任务列表</h2>
+          <h2 className="panel-title">{t('tasks.list')}</h2>
         </div>
         <div className="panel-body">
-          <AsyncState loading={tasks.loading} error={tasks.error} data={tasks.data} emptyText="暂无任务，点击「新建任务」创建作业模板">
+          <AsyncState loading={tasks.loading} error={tasks.error} data={tasks.data} refreshing={tasks.refreshing} emptyText={t('tasks.empty')}>
             {(rows) => (
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>任务名称</th>
-                      <th>格式</th>
-                      <th>定时调度</th>
-                      <th>下次执行</th>
-                      <th>创建时间</th>
-                      <th>最后执行</th>
-                      <th>当前状态</th>
-                      <th>最近 Job</th>
-                      <th>操作</th>
+                      <th>{t('tasks.colName')}</th>
+                      <th>{t('tasks.colFormat')}</th>
+                      <th>{t('tasks.colSchedule')}</th>
+                      <th>{t('tasks.colNext')}</th>
+                      <th>{t('tasks.colCreated')}</th>
+                      <th>{t('tasks.colLastRun')}</th>
+                      <th>{t('tasks.colLastStatus')}</th>
+                      <th>{t('tasks.colLastJob')}</th>
+                      <th>{t('app.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -91,14 +96,14 @@ export function TasksPage() {
                         <td>
                           {task.schedule?.enabled ? (
                             <Link to={`/tasks/${task.id}?tab=schedule`} title={task.schedule.cronExpr}>
-                              <span className="schedule-badge enabled">已启用</span>
+                              <span className="schedule-badge enabled">{t('tasks.scheduleOn')}</span>
                               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                                 {task.schedule.description}
                               </div>
                             </Link>
                           ) : (
                             <Link to={`/tasks/${task.id}?tab=schedule`}>
-                              <span className="schedule-badge">未启用</span>
+                              <span className="schedule-badge">{t('tasks.scheduleOff')}</span>
                             </Link>
                           )}
                         </td>
@@ -117,11 +122,11 @@ export function TasksPage() {
                               disabled={!task.isEnabled || runningId === task.id}
                               onClick={() => handleRun(task)}
                             >
-                              {runningId === task.id ? '提交中…' : '运行'}
+                              {runningId === task.id ? t('tasks.running') : t('tasks.run')}
                             </button>
-                            <Link className="btn" to={`/tasks/${task.id}`}>详情</Link>
-                            <Link className="btn" to={`/tasks/${task.id}/edit`}>编辑</Link>
-                            <button className="btn danger" type="button" onClick={() => handleDelete(task)}>删除</button>
+                            <Link className="btn" to={`/tasks/${task.id}`}>{t('tasks.detail')}</Link>
+                            <Link className="btn" to={`/tasks/${task.id}/edit`}>{t('tasks.edit')}</Link>
+                            <button className="btn danger" type="button" onClick={() => handleDelete(task)}>{t('tasks.delete')}</button>
                           </div>
                         </td>
                       </tr>

@@ -25,12 +25,77 @@ const MIME = {
   '.ico': 'image/x-icon',
 }
 
+const JOB_LIST_PATH = /^\/(running-jobs|finished-jobs(?:\/[A-Z_]+)?)$/
+const JOB_LIST_TTL_MS = 8000
+const jobListCache = new Map()
+
+function readPageParams(searchParams) {
+  const page = Math.max(1, Number(searchParams.get('page')) || 1)
+  const rows = Math.min(200, Math.max(1, Number(searchParams.get('rows')) || 20))
+  return { page, rows }
+}
+
+async function proxyJobList(req, res, base, pathname, searchParams) {
+  const { page, rows } = readPageParams(searchParams)
+  const cached = jobListCache.get(pathname)
+  const now = Date.now()
+  let list
+
+  if (cached && now - cached.at < JOB_LIST_TTL_MS) {
+    list = cached.list
+  } else {
+    const headers = { ...req.headers, host: new URL(base).host, accept: 'application/json' }
+    delete headers['content-length']
+    const upstream = await fetch(`${base}${pathname}`, { headers })
+    const text = await upstream.text()
+    if (!upstream.ok) {
+      res.writeHead(upstream.status, { 'Content-Type': upstream.headers.get('content-type') || 'application/json' })
+      res.end(text)
+      return
+    }
+    let parsed
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(text)
+      return
+    }
+    if (Array.isArray(parsed)) {
+      list = parsed
+    } else if (parsed && Array.isArray(parsed.data)) {
+      const alreadyPaged = parsed.page != null || parsed.rows != null
+      if (alreadyPaged) {
+        const total = Number.isFinite(parsed.total) ? parsed.total : parsed.data.length
+        sendJson(res, 200, { data: parsed.data, total, page: parsed.page || page, rows: parsed.rows || rows })
+        return
+      }
+      list = parsed.data
+    } else {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(text)
+      return
+    }
+    jobListCache.set(pathname, { at: now, list })
+  }
+
+  const total = list.length
+  const start = (page - 1) * rows
+  sendJson(res, 200, { data: list.slice(start, start + rows), total, page, rows })
+}
+
 async function proxyToSeatunnel(req, res, targetPath, body) {
   const base = getSeatunnelBase()
   if (!base) {
     sendJson(res, 503, {
       error: '尚未配置 SeaTunnel API Base，请管理员在「系统设置」中配置',
     })
+    return
+  }
+
+  const upstreamUrl = new URL(targetPath, 'http://seatunnel.invalid')
+  if (req.method === 'GET' && JOB_LIST_PATH.test(upstreamUrl.pathname)) {
+    await proxyJobList(req, res, base, upstreamUrl.pathname, upstreamUrl.searchParams)
     return
   }
 

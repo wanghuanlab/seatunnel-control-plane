@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { tasksApi } from '../api/tasksClient'
 import { useAsync } from '../components/AsyncState'
 import type { TaskConfigFormat, TaskPayload } from '../types/tasks'
+import { useI18n } from '../i18n'
 
 const SAMPLE_HOCON = `env {
   job.mode = "BATCH"
@@ -30,6 +31,7 @@ sink {
 }`
 
 export function TaskEditorPage() {
+  const { t } = useI18n()
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = Boolean(id)
@@ -69,7 +71,7 @@ export function TaskEditorPage() {
     try {
       if (isEdit) {
         await tasksApi.update(taskId, payload)
-        setMessage('保存成功')
+        setMessage(t('tasks.saved'))
       } else {
         const created = await tasksApi.create(payload)
         navigate(`/tasks/${created.id}/edit`, { replace: true })
@@ -82,7 +84,7 @@ export function TaskEditorPage() {
   }
 
   if (isEdit && existing.loading) {
-    return <div className="loading">加载中…</div>
+    return <div className="loading">{t('app.loading')}</div>
   }
 
   if (isEdit && existing.error) {
@@ -93,31 +95,31 @@ export function TaskEditorPage() {
     <>
       <header className="page-header">
         <div>
-          <h1 className="page-title">{isEdit ? '编辑任务' : '新建任务'}</h1>
-          <p className="page-desc">维护 SeaTunnel 作业模板，保存后可一键运行并提交到集群。</p>
+          <h1 className="page-title">{isEdit ? t('tasks.editorEdit') : t('tasks.editorCreate')}</h1>
+          <p className="page-desc">{t('tasks.editorDesc')}</p>
         </div>
         <div className="actions">
-          <Link className="btn" to="/tasks">返回列表</Link>
+          <Link className="btn" to="/tasks">{t('tasks.backToList')}</Link>
         </div>
       </header>
 
       <section className="panel">
-        <div className="panel-header"><h2 className="panel-title">任务信息</h2></div>
+        <div className="panel-header"><h2 className="panel-title">{t('tasks.info')}</h2></div>
         <div className="panel-body form-grid">
           <div className="form-row">
-            <label htmlFor="taskName">任务名称</label>
-            <input id="taskName" value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：HTTP 同步 PG" />
+            <label htmlFor="taskName">{t('tasks.name')}</label>
+            <input id="taskName" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tasks.namePh')} />
           </div>
           <div className="form-row">
-            <label htmlFor="taskDesc">描述</label>
-            <input id="taskDesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="可选" />
+            <label htmlFor="taskDesc">{t('tasks.description')}</label>
+            <input id="taskDesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('tasks.optional')} />
           </div>
           <div className="form-row">
-            <label htmlFor="defaultJobName">默认 Job Name（运行时）</label>
-            <input id="defaultJobName" value={defaultJobName} onChange={(e) => setDefaultJobName(e.target.value)} placeholder="留空则自动生成" />
+            <label htmlFor="defaultJobName">{t('tasks.defaultJobName')}</label>
+            <input id="defaultJobName" value={defaultJobName} onChange={(e) => setDefaultJobName(e.target.value)} placeholder={t('tasks.defaultJobNamePh')} />
           </div>
           <div className="form-row">
-            <label htmlFor="configFormat">配置格式</label>
+            <label htmlFor="configFormat">{t('tasks.configFormat')}</label>
             <select id="configFormat" value={configFormat} onChange={(e) => setConfigFormat(e.target.value as TaskConfigFormat)}>
               <option value="hocon">hocon</option>
               <option value="json">json</option>
@@ -125,23 +127,23 @@ export function TaskEditorPage() {
             </select>
           </div>
           <div className="form-row">
-            <label htmlFor="configContent">作业配置</label>
+            <label htmlFor="configContent">{t('tasks.configContent')}</label>
             <textarea id="configContent" value={configContent} onChange={(e) => setConfigContent(e.target.value)} />
           </div>
           <label className="inline-check">
             <input type="checkbox" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} />
-            启用任务
+            {t('tasks.enableTask')}
           </label>
           <div className="actions">
             <button className="btn primary" type="button" disabled={submitting || !name.trim()} onClick={save}>
-              {isEdit ? '保存' : '创建'}
+              {isEdit ? t('app.save') : t('tasks.createAction')}
             </button>
           </div>
         </div>
       </section>
 
       {message && (
-        <div className={message.includes('成功') ? 'panel' : 'error'} style={{ marginTop: 16, padding: 16 }}>
+        <div className={message === t('tasks.saved') ? 'panel' : 'error'} style={{ marginTop: 16, padding: 16 }}>
           {message}
         </div>
       )}

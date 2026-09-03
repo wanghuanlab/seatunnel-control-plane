@@ -5,6 +5,7 @@ import { AsyncState } from '../components/AsyncState'
 import { StatusBadge } from '../components/StatusBadge'
 import { TaskSchedulePanel } from '../components/TaskSchedulePanel'
 import { usePolling } from '../hooks/usePolling'
+import { useI18n } from '../i18n'
 import { formatTimestamp } from '../utils/format'
 
 type DetailTab = 'basic' | 'schedule' | 'runs'
@@ -15,6 +16,7 @@ function parseTab(value: string | null): DetailTab {
 }
 
 export function TaskDetailPage() {
+  const { t } = useI18n()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -33,12 +35,12 @@ export function TaskDetailPage() {
 
   const handleRun = async () => {
     if (!task.data) return
-    if (!window.confirm(`确认运行任务「${task.data.name}」？`)) return
+    if (!window.confirm(t('tasks.confirmRun', { name: task.data.name }))) return
     setRunning(true)
     setMessage(null)
     try {
       const result = await tasksApi.run(taskId)
-      setMessage(`已提交：${result.submitResult.jobName} (${result.submitResult.jobId})`)
+      setMessage(t('tasks.submitted', { name: result.submitResult.jobName, id: result.submitResult.jobId }))
       await Promise.all([task.reload(), runs.reload()])
     } catch (error) {
       setMessage(String(error))
@@ -49,7 +51,7 @@ export function TaskDetailPage() {
 
   const handleDelete = async () => {
     if (!task.data) return
-    if (!window.confirm(`确认删除任务「${task.data.name}」？`)) return
+    if (!window.confirm(t('tasks.confirmDelete', { name: task.data.name }))) return
     await tasksApi.delete(taskId)
     navigate('/tasks')
   }
@@ -58,121 +60,121 @@ export function TaskDetailPage() {
     <>
       <header className="page-header">
         <div>
-          <h1 className="page-title">任务详情</h1>
+          <h1 className="page-title">{t('tasks.detailTitle')}</h1>
           <p className="page-desc mono">#{id}</p>
         </div>
         <div className="actions">
           {tab !== 'schedule' && (
             <label className="inline-check">
               <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-              自动刷新
+              {t('app.autoRefresh')}
             </label>
           )}
-          <Link className="btn" to="/tasks">返回列表</Link>
-          <Link className="btn" to={`/tasks/${id}/edit`}>编辑</Link>
+          <Link className="btn" to="/tasks">{t('tasks.backToList')}</Link>
+          <Link className="btn" to={`/tasks/${id}/edit`}>{t('tasks.edit')}</Link>
           <button
             className="btn primary"
             type="button"
             disabled={running || !task.data?.isEnabled}
             onClick={handleRun}
           >
-            {running ? '提交中…' : '运行'}
+            {running ? t('tasks.running') : t('tasks.run')}
           </button>
-          <button className="btn danger" type="button" onClick={handleDelete}>删除</button>
+          <button className="btn danger" type="button" onClick={handleDelete}>{t('tasks.delete')}</button>
         </div>
       </header>
 
       {message && (
-        <div className={message.includes('已提交') ? 'panel' : 'error'} style={{ marginBottom: 16, padding: 16 }}>
+        <div className={/submitted|已提交/i.test(message) ? 'panel' : 'error'} style={{ marginBottom: 16, padding: 16 }}>
           {message}
         </div>
       )}
 
-      <AsyncState loading={task.loading} error={task.error} data={task.data} emptyText="未找到该任务">
+      <AsyncState loading={task.loading} error={task.error} data={task.data} refreshing={task.refreshing} emptyText={t('tasks.notFound')}>
         {(detail) => (
           <>
             <div className="tabs" style={{ marginBottom: 16 }}>
               <button className={`tab${tab === 'basic' ? ' active' : ''}`} type="button" onClick={() => setTab('basic')}>
-                基本信息
+                {t('tasks.basic')}
               </button>
               <button className={`tab${tab === 'schedule' ? ' active' : ''}`} type="button" onClick={() => setTab('schedule')}>
-                定时调度
+                {t('tasks.schedule')}
               </button>
               <button className={`tab${tab === 'runs' ? ' active' : ''}`} type="button" onClick={() => setTab('runs')}>
-                执行历史
+                {t('tasks.runs')}
               </button>
             </div>
 
             {tab === 'basic' && (
               <section className="panel">
                 <div className="panel-header">
-                  <h2 className="panel-title">基本信息</h2>
+                  <h2 className="panel-title">{t('tasks.basic')}</h2>
                   <StatusBadge status={detail.lastJobStatus} />
                 </div>
                 <div className="panel-body">
                   <div className="metric-grid">
                     <div className="metric-item">
-                      <div className="metric-key">任务名称</div>
+                      <div className="metric-key">{t('tasks.name')}</div>
                       <div className="metric-value">{detail.name}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">描述</div>
+                      <div className="metric-key">{t('tasks.description')}</div>
                       <div className="metric-value">{detail.description || '—'}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">配置格式</div>
+                      <div className="metric-key">{t('tasks.configFormat')}</div>
                       <div className="metric-value mono">{detail.configFormat}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">默认 Job Name</div>
+                      <div className="metric-key">{t('tasks.defaultJobName')}</div>
                       <div className="metric-value mono">{detail.defaultJobName || '—'}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">启用状态</div>
-                      <div className="metric-value">{detail.isEnabled ? '已启用' : '已禁用'}</div>
+                      <div className="metric-key">{t('tasks.enableState')}</div>
+                      <div className="metric-value">{detail.isEnabled ? t('app.enabled') : t('app.disabled')}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">定时调度</div>
+                      <div className="metric-key">{t('tasks.colSchedule')}</div>
                       <div className="metric-value">
                         {detail.schedule?.enabled ? (
                           <>
-                            已启用 · <Link to={`/tasks/${id}?tab=schedule`}>{detail.schedule.description}</Link>
+                            {t('tasks.scheduleOn')} · <Link to={`/tasks/${id}?tab=schedule`}>{detail.schedule.description}</Link>
                           </>
                         ) : (
                           <>
-                            未启用 · <Link to={`/tasks/${id}?tab=schedule`}>去配置</Link>
+                            {t('tasks.scheduleOff')} · <Link to={`/tasks/${id}?tab=schedule`}>{t('tasks.goConfigure')}</Link>
                           </>
                         )}
                       </div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">创建时间</div>
+                      <div className="metric-key">{t('tasks.colCreated')}</div>
                       <div className="metric-value">{formatTimestamp(detail.createdAt)}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">更新时间</div>
+                      <div className="metric-key">{t('tasks.updatedAt')}</div>
                       <div className="metric-value">{formatTimestamp(detail.updatedAt)}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">最后执行</div>
+                      <div className="metric-key">{t('tasks.colLastRun')}</div>
                       <div className="metric-value">{formatTimestamp(detail.lastRunAt)}</div>
                     </div>
                     <div className="metric-item">
-                      <div className="metric-key">最近 Job</div>
+                      <div className="metric-key">{t('tasks.lastJob')}</div>
                       <div className="metric-value mono">
                         {detail.lastJobId ? <Link to={`/jobs/${detail.lastJobId}`}>{detail.lastJobId}</Link> : '—'}
                       </div>
                     </div>
                     {detail.lastErrorMsg && (
                       <div className="metric-item">
-                        <div className="metric-key">最近错误</div>
+                        <div className="metric-key">{t('tasks.lastError')}</div>
                         <div className="metric-value">{detail.lastErrorMsg}</div>
                       </div>
                     )}
                   </div>
 
                   <div style={{ marginTop: 18 }}>
-                    <div className="metric-group-title">作业配置</div>
+                    <div className="metric-group-title">{t('tasks.jobConfig')}</div>
                     <pre className="mono metrics-pre">{detail.configContent}</pre>
                   </div>
                 </div>
@@ -184,23 +186,23 @@ export function TaskDetailPage() {
             {tab === 'runs' && (
               <section className="panel">
                 <div className="panel-header">
-                  <h2 className="panel-title">执行历史</h2>
-                  <button className="btn" type="button" onClick={() => runs.reload()}>刷新</button>
+                  <h2 className="panel-title">{t('tasks.runs')}</h2>
+                  <button className="btn" type="button" onClick={() => runs.reload()}>{t('app.refresh')}</button>
                 </div>
                 <div className="panel-body">
-                  <AsyncState loading={runs.loading} error={runs.error} data={runs.data} emptyText="暂无执行记录">
+                  <AsyncState loading={runs.loading} error={runs.error} data={runs.data} refreshing={runs.refreshing} emptyText={t('tasks.noRuns')}>
                     {(items) => (
                       <div className="table-wrap">
                         <table className="data-table">
                           <thead>
                             <tr>
-                              <th>Job ID</th>
-                              <th>Job Name</th>
-                              <th>状态</th>
-                              <th>开始时间</th>
-                              <th>结束时间</th>
-                              <th>错误信息</th>
-                              <th>操作</th>
+                              <th>{t('jobs.colId')}</th>
+                              <th>{t('jobs.colName')}</th>
+                              <th>{t('app.status')}</th>
+                              <th>{t('tasks.colStarted')}</th>
+                              <th>{t('tasks.colFinished')}</th>
+                              <th>{t('tasks.colError')}</th>
+                              <th>{t('app.actions')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -215,7 +217,7 @@ export function TaskDetailPage() {
                                 <td>{formatTimestamp(run.finishedAt)}</td>
                                 <td>{run.errorMsg || '—'}</td>
                                 <td>
-                                  <Link className="btn" to={`/jobs/${run.jobId}`}>作业详情</Link>
+                                  <Link className="btn" to={`/jobs/${run.jobId}`}>{t('tasks.jobDetail')}</Link>
                                 </td>
                               </tr>
                             ))}

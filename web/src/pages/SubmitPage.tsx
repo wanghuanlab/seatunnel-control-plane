@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { seatunnelApi } from '../api/client'
+import { useI18n } from '../i18n'
 
 const SAMPLE_JSON = `{
   "env": { "job.mode": "BATCH" },
@@ -32,6 +33,7 @@ const SAMPLE_BATCH = `[
 ]`
 
 export function SubmitPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'single' | 'batch' | 'upload'>('single')
   const [format, setFormat] = useState<'json' | 'hocon' | 'sql'>('json')
@@ -51,7 +53,7 @@ export function SubmitPage() {
         body = JSON.parse(payload)
       }
       const result = await seatunnelApi.submitJob(body, { jobName, format })
-      setMessage(`提交成功：${result.jobName} (${result.jobId})`)
+      setMessage(t('submit.success', { name: result.jobName, id: result.jobId }))
       navigate(`/jobs/${result.jobId}`)
     } catch (error) {
       setMessage(String(error))
@@ -74,7 +76,7 @@ export function SubmitPage() {
           }
         }),
       )
-      setMessage(`批量提交成功：${result.map((item) => `${item.jobName} (${item.jobId})`).join(', ')}`)
+      setMessage(t('submit.batchSuccess', { summary: result.map((item) => `${item.jobName} (${item.jobId})`).join(', ') }))
     } catch (error) {
       setMessage(String(error))
     } finally {
@@ -84,14 +86,14 @@ export function SubmitPage() {
 
   const submitUpload = async () => {
     if (!file) {
-      setMessage('请选择配置文件')
+      setMessage(t('submit.chooseFile'))
       return
     }
     setSubmitting(true)
     setMessage(null)
     try {
       const result = await seatunnelApi.submitJobUpload(file, { jobName })
-      setMessage(`上传提交成功：${result.jobName} (${result.jobId})`)
+      setMessage(t('submit.uploadSuccess', { name: result.jobName, id: result.jobId }))
       navigate(`/jobs/${result.jobId}`)
     } catch (error) {
       setMessage(String(error))
@@ -104,33 +106,33 @@ export function SubmitPage() {
     <>
       <header className="page-header">
         <div>
-          <h1 className="page-title">提交作业</h1>
-          <p className="page-desc">支持单作业 JSON/HOCON/SQL 提交、批量 `POST /submit-jobs`，以及配置文件上传。</p>
+          <h1 className="page-title">{t('submit.title')}</h1>
+          <p className="page-desc">{t('submit.desc')}</p>
         </div>
       </header>
 
       <div className="tabs">
         <button className={`tab${mode === 'single' ? ' active' : ''}`} type="button" onClick={() => setMode('single')}>
-          单作业提交
+          {t('submit.single')}
         </button>
         <button className={`tab${mode === 'batch' ? ' active' : ''}`} type="button" onClick={() => setMode('batch')}>
-          批量提交
+          {t('submit.batch')}
         </button>
         <button className={`tab${mode === 'upload' ? ' active' : ''}`} type="button" onClick={() => setMode('upload')}>
-          文件上传
+          {t('submit.upload')}
         </button>
       </div>
 
       {mode === 'single' && (
         <section className="panel">
-          <div className="panel-header"><h2 className="panel-title">文本提交</h2></div>
+          <div className="panel-header"><h2 className="panel-title">{t('submit.textSubmit')}</h2></div>
           <div className="panel-body form-grid">
             <div className="form-row">
-              <label htmlFor="jobName">Job Name</label>
+              <label htmlFor="jobName">{t('submit.jobName')}</label>
               <input id="jobName" value={jobName} onChange={(e) => setJobName(e.target.value)} />
             </div>
             <div className="form-row">
-              <label htmlFor="format">Format</label>
+              <label htmlFor="format">{t('submit.format')}</label>
               <select
                 id="format"
                 value={format}
@@ -149,13 +151,13 @@ export function SubmitPage() {
             </div>
             <div className="form-row">
               <label htmlFor="payload">
-                Config Body{format !== 'json' ? '（原始 HOCON / SQL 文本，直接粘贴 .conf 内容）' : ''}
+                {format !== 'json' ? t('submit.configBodyRaw') : t('submit.configBody')}
               </label>
               <textarea id="payload" value={payload} onChange={(e) => setPayload(e.target.value)} />
             </div>
             <div className="actions">
               <button className="btn primary" type="button" disabled={submitting} onClick={submitJson}>
-                提交作业
+                {t('submit.submitJob')}
               </button>
             </div>
           </div>
@@ -164,15 +166,15 @@ export function SubmitPage() {
 
       {mode === 'batch' && (
         <section className="panel">
-          <div className="panel-header"><h2 className="panel-title">批量提交</h2></div>
+          <div className="panel-header"><h2 className="panel-title">{t('submit.batch')}</h2></div>
           <div className="panel-body form-grid">
             <div className="form-row">
-              <label htmlFor="batchPayload">Jobs JSON Array（每项含 `params` 与作业配置）</label>
+              <label htmlFor="batchPayload">{t('submit.jobsArray')}</label>
               <textarea id="batchPayload" value={batchPayload} onChange={(e) => setBatchPayload(e.target.value)} />
             </div>
             <div className="actions">
               <button className="btn primary" type="button" disabled={submitting} onClick={submitBatch}>
-                批量提交
+                {t('submit.batch')}
               </button>
             </div>
           </div>
@@ -181,19 +183,19 @@ export function SubmitPage() {
 
       {mode === 'upload' && (
         <section className="panel">
-          <div className="panel-header"><h2 className="panel-title">文件上传</h2></div>
+          <div className="panel-header"><h2 className="panel-title">{t('submit.uploadTitle')}</h2></div>
           <div className="panel-body form-grid">
             <div className="form-row">
-              <label htmlFor="jobNameUpload">Job Name</label>
+              <label htmlFor="jobNameUpload">{t('submit.jobName')}</label>
               <input id="jobNameUpload" value={jobName} onChange={(e) => setJobName(e.target.value)} />
             </div>
             <div className="form-row">
-              <label htmlFor="configFile">Config File</label>
+              <label htmlFor="configFile">{t('submit.configFile')}</label>
               <input id="configFile" type="file" accept=".json,.conf,.config,.sql" onChange={(e) => setFile(e.target.files?.[0] || null)} />
             </div>
             <div className="actions">
               <button className="btn primary" type="button" disabled={submitting} onClick={submitUpload}>
-                上传并提交
+                {t('submit.uploadSubmit')}
               </button>
             </div>
           </div>
@@ -201,7 +203,7 @@ export function SubmitPage() {
       )}
 
       {message && (
-        <div className={message.includes('成功') ? 'panel' : 'error'} style={{ marginTop: 16, padding: 16 }}>
+        <div className={/success|成功/i.test(message) ? 'panel' : 'error'} style={{ marginTop: 16, padding: 16 }}>
           {message}
         </div>
       )}

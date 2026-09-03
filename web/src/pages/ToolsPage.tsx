@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { seatunnelApi } from '../api/client'
+import { useI18n } from '../i18n'
 
 export function ToolsPage() {
+  const { t } = useI18n()
   const [tagsJson, setTagsJson] = useState('{\n  "zone": "local",\n  "env": "dev"\n}')
   const [encryptJson, setEncryptJson] = useState('{\n  "env": { "parallelism": 1 }\n}')
   const [stopJobIds, setStopJobIds] = useState('')
@@ -30,42 +32,42 @@ export function ToolsPage() {
     <>
       <header className="page-header">
         <div>
-          <h1 className="page-title">工具箱</h1>
-          <p className="page-desc">节点 Tags、配置加密、单/批量停止与批量提交作业。</p>
+          <h1 className="page-title">{t('tools.title')}</h1>
+          <p className="page-desc">{t('tools.desc')}</p>
         </div>
       </header>
 
       <section className="panel">
-        <div className="panel-header"><h2 className="panel-title">更新节点 Tags</h2></div>
+        <div className="panel-header"><h2 className="panel-title">{t('tools.updateTags')}</h2></div>
         <div className="panel-body form-grid">
           <div className="form-row">
-            <label htmlFor="tags">Tags JSON（空对象 `{}` 表示清除）</label>
+            <label htmlFor="tags">{t('tools.tagsLabel')}</label>
             <textarea id="tags" value={tagsJson} onChange={(e) => setTagsJson(e.target.value)} />
           </div>
           <button className="btn primary" type="button" onClick={() => run(() => seatunnelApi.updateTags(JSON.parse(tagsJson)))}>
-            更新 Tags
+            {t('tools.updateTagsAction')}
           </button>
         </div>
       </section>
 
       <section className="panel" style={{ marginTop: 16 }}>
-        <div className="panel-header"><h2 className="panel-title">加密配置</h2></div>
+        <div className="panel-header"><h2 className="panel-title">{t('tools.encrypt')}</h2></div>
         <div className="panel-body form-grid">
           <div className="form-row">
-            <label htmlFor="encrypt">Config JSON</label>
+            <label htmlFor="encrypt">{t('tools.encryptLabel')}</label>
             <textarea id="encrypt" value={encryptJson} onChange={(e) => setEncryptJson(e.target.value)} />
           </div>
           <button className="btn primary" type="button" onClick={() => run(() => seatunnelApi.encryptConfig(JSON.parse(encryptJson)))}>
-            加密
+            {t('tools.encryptAction')}
           </button>
         </div>
       </section>
 
       <section className="panel" style={{ marginTop: 16 }}>
-        <div className="panel-header"><h2 className="panel-title">批量停止作业</h2></div>
+        <div className="panel-header"><h2 className="panel-title">{t('tools.batchStop')}</h2></div>
         <div className="panel-body form-grid">
           <div className="form-row">
-            <label htmlFor="stopJobIds">Job IDs（逗号或换行分隔）</label>
+            <label htmlFor="stopJobIds">{t('tools.stopIds')}</label>
             <textarea
               id="stopJobIds"
               value={stopJobIds}
@@ -84,16 +86,16 @@ export function ToolsPage() {
             }
             disabled={!stopJobIds.trim()}
           >
-            批量停止
+            {t('tools.stopAction')}
           </button>
         </div>
       </section>
 
       <section className="panel" style={{ marginTop: 16 }}>
-        <div className="panel-header"><h2 className="panel-title">批量提交作业</h2></div>
+        <div className="panel-header"><h2 className="panel-title">{t('tools.batchSubmit')}</h2></div>
         <div className="panel-body form-grid">
           <div className="form-row">
-            <label htmlFor="batchSubmit">Jobs JSON Array（`POST /submit-jobs`）</label>
+            <label htmlFor="batchSubmit">{t('tools.batchLabel')}</label>
             <textarea id="batchSubmit" value={batchSubmitJson} onChange={(e) => setBatchSubmitJson(e.target.value)} />
           </div>
           <button
@@ -101,14 +103,14 @@ export function ToolsPage() {
             type="button"
             onClick={() => run(() => seatunnelApi.submitJobs(JSON.parse(batchSubmitJson)))}
           >
-            批量提交
+            {t('tools.batchAction')}
           </button>
         </div>
       </section>
 
       {message && (
         <section className="panel" style={{ marginTop: 16 }}>
-          <div className="panel-header"><h2 className="panel-title">结果</h2></div>
+          <div className="panel-header"><h2 className="panel-title">{t('tools.result')}</h2></div>
           <div className="panel-body">
             <pre className="mono metrics-pre">{message}</pre>
           </div>

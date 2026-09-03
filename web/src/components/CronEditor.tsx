@@ -7,6 +7,7 @@ import {
   describeCronExpression,
   weekdayLabel,
 } from '../utils/cron'
+import { useI18n } from '../i18n'
 
 interface Props {
   config: CronEditorConfig
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange }: Props) {
+  const { t } = useI18n()
+
   const setPreset = (preset: CronPreset) => {
     onConfigChange({ ...defaultCronConfig(), ...config, preset })
   }
@@ -30,10 +33,10 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
     update({ daysOfWeek: next.sort((a, b) => a - b) })
   }
 
-  let preview = describeCronExpression(config, timezone)
+  let preview = describeCronExpression(config, timezone, t)
   let cronExpr = ''
   try {
-    cronExpr = buildCronExpression(config)
+    cronExpr = buildCronExpression(config, t)
   } catch (error) {
     preview = String(error)
   }
@@ -41,7 +44,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
   return (
     <div className="form-grid">
       <div className="form-row">
-        <label>执行频率</label>
+        <label>{t('schedule.frequency')}</label>
         <div className="cron-preset-grid">
           {CRON_PRESET_OPTIONS.map((option) => (
             <button
@@ -50,8 +53,8 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
               className={`cron-preset-card${config.preset === option.value ? ' active' : ''}`}
               onClick={() => setPreset(option.value)}
             >
-              <div className="cron-preset-title">{option.label}</div>
-              <div className="cron-preset-hint">{option.hint}</div>
+              <div className="cron-preset-title">{t(option.labelKey)}</div>
+              <div className="cron-preset-hint">{t(option.hintKey)}</div>
             </button>
           ))}
         </div>
@@ -59,7 +62,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
 
       {config.preset === 'hourly' && (
         <div className="form-row">
-          <label htmlFor="cronMinute">在每小时的第几分钟执行</label>
+          <label htmlFor="cronMinute">{t('schedule.minuteOfHour')}</label>
           <input
             id="cronMinute"
             type="number"
@@ -74,7 +77,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
       {(config.preset === 'daily' || config.preset === 'weekly' || config.preset === 'monthly') && (
         <div className="form-row cron-time-row">
           <div>
-            <label htmlFor="cronHour">小时 (0-23)</label>
+            <label htmlFor="cronHour">{t('schedule.hour')}</label>
             <input
               id="cronHour"
               type="number"
@@ -85,7 +88,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
             />
           </div>
           <div>
-            <label htmlFor="cronMinuteOfHour">分钟 (0-59)</label>
+            <label htmlFor="cronMinuteOfHour">{t('schedule.minute')}</label>
             <input
               id="cronMinuteOfHour"
               type="number"
@@ -100,7 +103,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
 
       {config.preset === 'weekly' && (
         <div className="form-row">
-          <label>选择星期</label>
+          <label>{t('schedule.weekdays')}</label>
           <div className="cron-weekday-grid">
             {[0, 1, 2, 3, 4, 5, 6].map((day) => (
               <label key={day} className={`cron-weekday${config.daysOfWeek?.includes(day) ? ' active' : ''}`}>
@@ -109,7 +112,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
                   checked={config.daysOfWeek?.includes(day) || false}
                   onChange={() => toggleWeekday(day)}
                 />
-                {weekdayLabel(day)}
+                {weekdayLabel(day, t)}
               </label>
             ))}
           </div>
@@ -118,7 +121,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
 
       {config.preset === 'monthly' && (
         <div className="form-row">
-          <label htmlFor="cronDayOfMonth">每月第几天 (1-31)</label>
+          <label htmlFor="cronDayOfMonth">{t('schedule.dayOfMonth')}</label>
           <input
             id="cronDayOfMonth"
             type="number"
@@ -132,7 +135,7 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
 
       {config.preset === 'custom' && (
         <div className="form-row">
-          <label htmlFor="cronCustom">Cron 表达式（分 时 日 月 星期）</label>
+          <label htmlFor="cronCustom">{t('schedule.cronExpr')}</label>
           <input
             id="cronCustom"
             className="mono"
@@ -140,23 +143,23 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
             onChange={(e) => update({ customExpr: e.target.value })}
             placeholder="0 9 * * 1-5"
           />
-          <div className="cron-help">示例：每天 9:00 → <code>0 9 * * *</code>；工作日 9:00 → <code>0 9 * * 1-5</code></div>
+          <div className="cron-help">{t('schedule.cronHelp')}</div>
         </div>
       )}
 
       <div className="form-row">
-        <label htmlFor="cronTimezone">时区</label>
+        <label htmlFor="cronTimezone">{t('schedule.timezone')}</label>
         <select id="cronTimezone" value={timezone} onChange={(e) => onTimezoneChange(e.target.value)}>
           {TIMEZONE_OPTIONS.map((tz) => (
-            <option key={tz.value} value={tz.value}>{tz.label}</option>
+            <option key={tz.value} value={tz.value}>{t(tz.labelKey)}</option>
           ))}
         </select>
       </div>
 
       <div className="cron-preview">
-        <div className="cron-preview-title">调度说明</div>
+        <div className="cron-preview-title">{t('schedule.preview')}</div>
         <div>{preview}</div>
-        {cronExpr && <div className="mono cron-preview-expr">表达式：{cronExpr}</div>}
+        {cronExpr && <div className="mono cron-preview-expr">{t('schedule.expr', { expr: cronExpr })}</div>}
       </div>
     </div>
   )

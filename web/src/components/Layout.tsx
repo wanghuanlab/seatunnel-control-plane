@@ -20,23 +20,13 @@ import {
 } from '@phosphor-icons/react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-
-const NAV_ITEMS = [
-  { to: '/', label: '工作台', icon: Pulse },
-  { to: '/tasks', label: '任务资产', icon: ListChecks },
-  { to: '/jobs', label: '作业运行', icon: ChartLineUp },
-  { to: '/pending', label: '运行队列', icon: Queue },
-]
-
-const OPERATIONS_ITEMS = [
-  { to: '/submit', label: '提交作业', icon: PaperPlaneTilt },
-  { to: '/logs', label: '日志中心', icon: FileText },
-  { to: '/system', label: '资源监控', icon: SlidersHorizontal },
-  { to: '/tools', label: '运维工具', icon: Toolbox },
-]
+import { LanguageSwitch } from './LanguageSwitch'
+import { useI18n } from '../i18n'
+import { localizeError } from '../i18n/errors'
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, isAdmin, health, logout, changePassword } = useAuth()
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -83,13 +73,26 @@ export function Layout({ children }: { children: ReactNode }) {
     setPasswordError(null)
     try {
       await changePassword(oldPassword, newPassword)
-      setPasswordMessage('密码已更新')
+      setPasswordMessage(t('password.updated'))
       setOldPassword('')
       setNewPassword('')
     } catch (error) {
-      setPasswordError(String(error instanceof Error ? error.message : error))
+      setPasswordError(localizeError(String(error instanceof Error ? error.message : error), t))
     }
   }
+
+  const navItems = [
+    { to: '/', label: t('nav.workbench'), icon: Pulse },
+    { to: '/tasks', label: t('nav.tasks'), icon: ListChecks },
+    { to: '/jobs', label: t('nav.jobs'), icon: ChartLineUp },
+    { to: '/pending', label: t('nav.pending'), icon: Queue },
+  ]
+  const operationsItems = [
+    { to: '/submit', label: t('nav.submit'), icon: PaperPlaneTilt },
+    { to: '/logs', label: t('nav.logs'), icon: FileText },
+    { to: '/system', label: t('nav.system'), icon: SlidersHorizontal },
+    { to: '/tools', label: t('nav.tools'), icon: Toolbox },
+  ]
 
   return (
     <div className="app-shell">
@@ -98,18 +101,18 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="brand-lockup">
             <div className="brand-orbit"><Pulse size={18} weight="bold" /></div>
             <div>
-              <div className="brand-title">SeaTunnel</div>
-              <div className="brand-sub">Control Plane</div>
+              <div className="brand-title">{t('app.name')}</div>
+              <div className="brand-sub">{t('app.subtitle')}</div>
             </div>
           </div>
-          <div className="brand-mark">ZETA · REST API V2</div>
+          <div className="brand-mark">{t('app.mark')}</div>
         </div>
         <nav className="nav-list" onClick={() => {
           setShowCommand(false)
           setShowAccountMenu(false)
         }}>
-          <div className="nav-section-label">运行空间</div>
-          {NAV_ITEMS.map((item) => (
+          <div className="nav-section-label">{t('nav.space')}</div>
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -120,8 +123,8 @@ export function Layout({ children }: { children: ReactNode }) {
               {item.label}
             </NavLink>
           ))}
-          <div className="nav-section-label nav-section-spaced">运维与观测</div>
-          {OPERATIONS_ITEMS.map((item) => (
+          <div className="nav-section-label nav-section-spaced">{t('nav.operations')}</div>
+          {operationsItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -137,7 +140,7 @@ export function Layout({ children }: { children: ReactNode }) {
               className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             >
               <GearSix size={18} weight="duotone" />
-              系统设置
+              {t('nav.settings')}
             </NavLink>
           )}
         </nav>
@@ -150,24 +153,25 @@ export function Layout({ children }: { children: ReactNode }) {
             setShowAccountMenu(false)
           }}>
             <MagnifyingGlass size={17} />
-            <span>搜索作业或快速操作</span>
+            <span>{t('topbar.search')}</span>
             <kbd><Command size={12} /> K</kbd>
           </button>
           <div className="topbar-actions">
             <div className="connection-indicator" title={health?.message}>
               <span className={`connection-dot${health?.reachable ? ' live' : ''}`} />
-              {health?.reachable ? '集群已连接' : '连接待配置'}
+              {health?.reachable ? t('topbar.connected') : t('topbar.unconfigured')}
             </div>
             <Link className="btn primary compact" to="/submit" onClick={() => {
               setShowCommand(false)
               setShowAccountMenu(false)
-            }}><Plus size={16} weight="bold" /> 提交作业</Link>
+            }}><Plus size={16} weight="bold" /> {t('topbar.submit')}</Link>
+            <LanguageSwitch compact />
             <button
               className="icon-button theme-toggle"
               type="button"
               onClick={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
-              aria-label={theme === 'dark' ? '切换到明亮模式' : '切换到暗黑模式'}
-              title={theme === 'dark' ? '切换到明亮模式' : '切换到暗黑模式'}
+              aria-label={theme === 'dark' ? t('topbar.themeToLight') : t('topbar.themeToDark')}
+              title={theme === 'dark' ? t('topbar.themeToLight') : t('topbar.themeToDark')}
             >
               {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
@@ -185,7 +189,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 <span className="account-avatar">{user?.username.slice(0, 1).toUpperCase()}</span>
                 <span className="account-identity">
                   <strong>{user?.username}</strong>
-                  <small>{user?.role === 'admin' ? '平台管理员' : '操作用户'}</small>
+                  <small>{user?.role === 'admin' ? t('topbar.admin') : t('topbar.operator')}</small>
                 </span>
                 <CaretDown size={14} weight="bold" />
               </button>
@@ -193,14 +197,14 @@ export function Layout({ children }: { children: ReactNode }) {
                 <div className="account-menu" role="menu">
                   <div className="account-menu-summary">
                     <span className="account-avatar">{user?.username.slice(0, 1).toUpperCase()}</span>
-                    <span><strong>{user?.username}</strong><small>{user?.role === 'admin' ? '平台管理员' : '操作用户'}</small></span>
+                    <span><strong>{user?.username}</strong><small>{user?.role === 'admin' ? t('topbar.admin') : t('topbar.operator')}</small></span>
                   </div>
                   <div className="account-menu-actions">
                     <button type="button" role="menuitem" onClick={() => {
                       setShowAccountMenu(false)
                       setShowPasswordModal(true)
-                    }}><Key size={16} /> 修改密码</button>
-                    <button type="button" role="menuitem" className="account-logout" onClick={onLogout}><SignOut size={16} /> 退出登录</button>
+                    }}><Key size={16} /> {t('topbar.changePassword')}</button>
+                    <button type="button" role="menuitem" className="account-logout" onClick={onLogout}><SignOut size={16} /> {t('topbar.logout')}</button>
                   </div>
                 </div>
               )}
@@ -208,10 +212,10 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
           {showCommand && (
             <div className="command-menu">
-              <div className="command-menu-label">快速操作</div>
-              <Link to="/submit" onClick={() => setShowCommand(false)}><PaperPlaneTilt size={17} /> 提交新作业</Link>
-              <Link to="/tasks/new" onClick={() => setShowCommand(false)}><Plus size={17} /> 创建任务模板</Link>
-              <Link to="/pending" onClick={() => setShowCommand(false)}><Queue size={17} /> 查看 Pending 诊断</Link>
+              <div className="command-menu-label">{t('topbar.quickActions')}</div>
+              <Link to="/submit" onClick={() => setShowCommand(false)}><PaperPlaneTilt size={17} /> {t('topbar.submitNew')}</Link>
+              <Link to="/tasks/new" onClick={() => setShowCommand(false)}><Plus size={17} /> {t('topbar.createTask')}</Link>
+              <Link to="/pending" onClick={() => setShowCommand(false)}><Queue size={17} /> {t('topbar.pendingDiag')}</Link>
             </div>
           )}
         </header>
@@ -219,9 +223,9 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="config-banner">
             <div>{health.message}</div>
             {isAdmin ? (
-              <Link className="btn" to="/settings">去系统设置</Link>
+              <Link className="btn" to="/settings">{t('topbar.goSettings')}</Link>
             ) : (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>请联系管理员配置</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('topbar.contactAdmin')}</span>
             )}
           </div>
         )}
@@ -232,27 +236,27 @@ export function Layout({ children }: { children: ReactNode }) {
           <section className="password-modal" role="dialog" aria-modal="true" aria-labelledby="password-modal-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="password-modal-header">
               <div>
-                <span className="modal-kicker">账户安全</span>
-                <h2 id="password-modal-title">修改密码</h2>
-                <p>更新后，请使用新密码重新登录。</p>
+                <span className="modal-kicker">{t('password.kicker')}</span>
+                <h2 id="password-modal-title">{t('password.title')}</h2>
+                <p>{t('password.hint')}</p>
               </div>
-              <button className="icon-button" type="button" aria-label="关闭修改密码弹窗" onClick={closePasswordModal}>×</button>
+              <button className="icon-button" type="button" aria-label={t('password.closeAria')} onClick={closePasswordModal}>×</button>
             </div>
             <form className="password-form" onSubmit={onChangePassword}>
               <div className="form-row">
-                <label htmlFor="oldPassword">当前密码</label>
+                <label htmlFor="oldPassword">{t('password.current')}</label>
                 <input id="oldPassword" autoComplete="current-password" type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required />
               </div>
               <div className="form-row">
-                <label htmlFor="newPassword">新密码</label>
+                <label htmlFor="newPassword">{t('password.next')}</label>
                 <input id="newPassword" autoComplete="new-password" type="password" minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-                <span className="password-hint">至少 6 位字符</span>
+                <span className="password-hint">{t('password.minLength')}</span>
               </div>
               {passwordMessage && <div className="password-feedback success">{passwordMessage}</div>}
               {passwordError && <div className="password-feedback error">{passwordError}</div>}
               <div className="password-modal-actions">
-                <button className="btn ghost" type="button" onClick={closePasswordModal}>取消</button>
-                <button className="btn primary" type="submit">保存新密码</button>
+                <button className="btn ghost" type="button" onClick={closePasswordModal}>{t('app.cancel')}</button>
+                <button className="btn primary" type="submit">{t('password.save')}</button>
               </div>
             </form>
           </section>
