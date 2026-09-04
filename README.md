@@ -43,6 +43,8 @@ Node.js Console API（默认 :8800）
 
 ### 使用启动脚本（推荐）
 
+**macOS / Linux：**
+
 ```bash
 cd seatunnel-control-plane
 sh scripts/start.sh start
@@ -51,14 +53,28 @@ sh scripts/start.sh start
 sh scripts/start.sh status
 ```
 
+**Windows（CMD）：**
+
+```bat
+cd seatunnel-control-plane
+scripts\start.bat start
+scripts\start.bat status
+```
+
 首次启动时，脚本会自动安装缺失的根目录和 `web/` 依赖，初始化 SQLite schema 与默认管理员，并从 API `8800`、Web `5174` 起自动选择空闲端口。请始终以 `status` 输出的地址为准。
 
 日常管理统一使用脚本：
 
 ```bash
+# macOS / Linux
 sh scripts/start.sh status    # 查看实际端口、PID 和日志路径
 sh scripts/start.sh restart   # 重启 API 与 Web
 sh scripts/start.sh stop      # 停止 API 与 Web
+
+# Windows
+scripts\start.bat status
+scripts\start.bat restart
+scripts\start.bat stop
 ```
 
 首次使用：
@@ -108,7 +124,7 @@ SQLite 保存：
 
 ## 正式部署（打包与上线）
 
-开发模式（`scripts/start.sh` / `npm run dev`）会同时启动 **Vite 前端** 与 **Node API**，适合本机调试，**不要**直接当作正式环境入口。
+开发模式（`scripts/start.sh` / `scripts/start.bat` / `npm run dev`）会同时启动 **Vite 前端** 与 **Node API**，适合本机调试，**不要**直接当作正式环境入口。
 
 正式环境的正确形态是：
 
@@ -160,7 +176,7 @@ web/dist/
 | `node_modules/` | 必须（在服务器生成） | **不要**从 macOS/Windows 本机直接拷贝；`better-sqlite3` 需在目标 Linux 上编译/安装 |
 | `data/` | 必须持久化 | SQLite；升级时保留，勿随意删除 |
 | `web/src/`、`web/node_modules/` | 非必须 | 服务器只跑已构建产物时可不部署源码与前端依赖 |
-| `scripts/start.sh` | 非必须 | 仅开发模式使用 |
+| `scripts/start.sh` / `scripts/start.bat` | 非必须 | 仅开发模式使用（Unix / Windows） |
 
 ### 推荐部署流程（本机构建 + 服务器运行）
 
@@ -407,5 +423,7 @@ seatunnel-control-plane/
 │       └── api/            # SeaTunnel 与控制台 API 客户端
 ├── data/                   # SQLite 数据目录（运行时生成，生产需持久化）
 ├── var/                    # PID、运行时端口与日志（运行时生成）
-└── scripts/start.sh        # 开发模式 start / stop / restart / status
+└── scripts/
+    ├── start.sh            # 开发模式 start / stop / restart / status（Unix）
+    └── start.bat           # 同上（Windows）
 ```
