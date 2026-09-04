@@ -69,10 +69,7 @@ export function LoginPage() {
       <main className="login-stage">
         <section className="login-hero" aria-label={t('login.introAria')}>
           <p className="login-eyebrow">{t('login.eyebrow')}</p>
-          <h1>
-            <span className="login-wordmark">{t('login.title')}</span>
-            <small>{t('login.subtitle')}</small>
-          </h1>
+          <h1 className="login-wordmark">{t('login.title')}</h1>
           <p className="login-lead">{t('login.lead')}</p>
         </section>
         <form className="login-form" onSubmit={onSubmit}>

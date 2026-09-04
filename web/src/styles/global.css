@@ -709,9 +709,6 @@ table.data-table tr:hover td {
 
 .login-shell {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
 }
 
 .login-card {

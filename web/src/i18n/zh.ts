@@ -68,7 +68,7 @@ export const zh: Messages = {
   },
   login: {
     eyebrow: 'Zeta 引擎',
-    title: 'SeaTunnel',
+    title: 'SeaTunnel Control Plane',
     subtitle: '控制平面',
     lead: '在同一个控制台里调度任务、观测作业，并看清集群容量。',
     kicker: '安全访问',

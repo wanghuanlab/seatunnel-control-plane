@@ -66,7 +66,7 @@ export const en = {
   },
   login: {
     eyebrow: 'Zeta engine',
-    title: 'SeaTunnel',
+    title: 'SeaTunnel Control Plane',
     subtitle: 'Control Plane',
     lead: 'Operate jobs, schedules, and cluster capacity from one console.',
     kicker: 'Secure access',
