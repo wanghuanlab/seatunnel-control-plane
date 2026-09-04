@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const apiPort = Number(process.env.EDP_VIZ_PORT || 8800)
-const webPort = Number(process.env.EDP_WEB_PORT || 5174)
+const apiPort = Number(process.env.SCP_PORT || 8800)
+const webPort = Number(process.env.SCP_WEB_PORT || 5174)
 
 export default defineConfig({
   plugins: [react()],

@@ -11,7 +11,7 @@ import { getSeatunnelBase } from './settings.mjs'
 import { handleTasksApi } from './tasks-router.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const PREFERRED_PORT = Number(process.env.EDP_VIZ_PORT || 8800)
+const PREFERRED_PORT = Number(process.env.SCP_PORT || 8800)
 const WEB_DIST = join(__dirname, '../web/dist')
 const isProd = process.env.NODE_ENV === 'production'
 

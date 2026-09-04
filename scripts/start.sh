@@ -170,10 +170,10 @@ cmd_start() {
   : >"$SERVER_LOG"
   : >"$WEB_LOG"
 
-  EDP_VIZ_PORT="$api_port" nohup node server/index.mjs >>"$SERVER_LOG" 2>&1 &
+  SCP_PORT="$api_port" nohup node server/index.mjs >>"$SERVER_LOG" 2>&1 &
   echo $! >"$SERVER_PID_FILE"
 
-  EDP_VIZ_PORT="$api_port" EDP_WEB_PORT="$web_port" nohup npm --prefix web run dev >>"$WEB_LOG" 2>&1 &
+  SCP_PORT="$api_port" SCP_WEB_PORT="$web_port" nohup npm --prefix web run dev >>"$WEB_LOG" 2>&1 &
   echo $! >"$WEB_PID_FILE"
 
   node -e "const fs=require('fs');fs.writeFileSync(process.argv[1], JSON.stringify({apiPort:Number(process.argv[2]),webPort:Number(process.argv[3]),startedAt:new Date().toISOString()},null,2))" \

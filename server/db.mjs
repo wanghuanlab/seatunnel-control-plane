@@ -9,7 +9,7 @@ const DEFAULT_DB_PATH = join(__dirname, '../data/seatunnel-control-plane.sqlite'
 let db
 
 export function getDbPath() {
-  const configured = process.env.EDP_SQLITE_PATH
+  const configured = process.env.SCP_SQLITE_PATH
   if (!configured) return DEFAULT_DB_PATH
   return isAbsolute(configured) ? configured : join(process.cwd(), configured)
 }

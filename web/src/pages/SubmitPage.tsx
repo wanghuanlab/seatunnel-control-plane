@@ -37,7 +37,7 @@ export function SubmitPage() {
   const navigate = useNavigate()
   const [mode, setMode] = useState<'single' | 'batch' | 'upload'>('single')
   const [format, setFormat] = useState<'json' | 'hocon' | 'sql'>('json')
-  const [jobName, setJobName] = useState('edp_console_job')
+  const [jobName, setJobName] = useState('scp_console_job')
   const [payload, setPayload] = useState(SAMPLE_JSON)
   const [batchPayload, setBatchPayload] = useState(SAMPLE_BATCH)
   const [file, setFile] = useState<File | null>(null)

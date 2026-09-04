@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { dbAll, dbGet, dbRun, nowIso, toBool } from './db.mjs'
 
-export const SESSION_COOKIE = 'edp_session'
+export const SESSION_COOKIE = 'scp_session'
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export function mapUser(row) {
