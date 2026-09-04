@@ -1,3 +1,4 @@
+import { ArrowsClockwise, Play, Plus } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { tasksApi } from '../api/tasksClient'
@@ -36,42 +37,50 @@ export function TasksPage() {
 
   const handleDelete = async (task: Task) => {
     if (!window.confirm(t('tasks.confirmDelete', { name: task.name }))) return
-    await tasksApi.delete(task.id)
-    await tasks.reload()
+    setMessage(null)
+    try {
+      await tasksApi.delete(task.id)
+      await tasks.reload()
+    } catch (error) {
+      setMessageOk(false)
+      setMessage(String(error))
+    }
   }
 
   return (
-    <>
-      <header className="page-header">
+    <div className="run-space run-tasks">
+      <header className="run-page-header">
         <div>
-          <h1 className="page-title">{t('tasks.title')}</h1>
-          <p className="page-desc">{t('tasks.desc')}</p>
+          <span className="run-page-kicker">{t('nav.space')}</span>
+          <h1 className="run-page-title">{t('tasks.title')}</h1>
+          <p className="run-page-desc">{t('tasks.desc')}</p>
         </div>
-        <div className="actions">
-          <label className="inline-check">
+        <div className="run-page-actions">
+          <label className="run-refresh-control">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
             {t('app.autoRefresh')}
           </label>
-          <Link className="btn primary" to="/tasks/new">{t('tasks.create')}</Link>
-          <button className="btn" type="button" onClick={() => tasks.reload()}>{t('app.refresh')}</button>
+          <button className="btn compact" type="button" onClick={() => tasks.reload()}><ArrowsClockwise size={16} />{t('app.refresh')}</button>
+          <Link className="btn primary" to="/tasks/new"><Plus size={16} weight="bold" />{t('tasks.create')}</Link>
         </div>
       </header>
 
       {message && (
-        <div className={messageOk ? 'panel' : 'error'} style={{ marginBottom: 16, padding: 16 }}>
+        <div className={`run-notice ${messageOk ? 'success' : 'error'}`} role="status">
           {message}
         </div>
       )}
 
-      <section className="panel">
-        <div className="panel-header">
-          <h2 className="panel-title">{t('tasks.list')}</h2>
+      <section className="run-panel">
+        <div className="run-panel-header">
+          <div><span className="run-panel-kicker">{t('nav.tasks')}</span><h2>{t('tasks.list')}</h2></div>
+          <span className="run-panel-meta">{tasks.data?.length ?? 0} {t('app.records')}</span>
         </div>
-        <div className="panel-body">
+        <div className="run-panel-body">
           <AsyncState loading={tasks.loading} error={tasks.error} data={tasks.data} refreshing={tasks.refreshing} emptyText={t('tasks.empty')}>
             {(rows) => (
               <div className="table-wrap">
-                <table className="data-table">
+                <table className="data-table run-table task-table">
                   <thead>
                     <tr>
                       <th>{t('tasks.colName')}</th>
@@ -89,15 +98,15 @@ export function TasksPage() {
                     {rows.map((task) => (
                       <tr key={task.id}>
                         <td>
-                          <Link to={`/tasks/${task.id}`}>{task.name}</Link>
-                          {task.description && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{task.description}</div>}
+                          <Link className="run-table-primary" to={`/tasks/${task.id}`}>{task.name}</Link>
+                          {task.description && <div className="run-table-secondary">{task.description}</div>}
                         </td>
                         <td className="mono">{task.configFormat}</td>
                         <td>
                           {task.schedule?.enabled ? (
                             <Link to={`/tasks/${task.id}?tab=schedule`} title={task.schedule.cronExpr}>
                               <span className="schedule-badge enabled">{t('tasks.scheduleOn')}</span>
-                              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+                              <div className="run-table-secondary schedule-description">
                                 {task.schedule.description}
                               </div>
                             </Link>
@@ -115,18 +124,18 @@ export function TasksPage() {
                           {task.lastJobId ? <Link to={`/jobs/${task.lastJobId}`}>{task.lastJobId}</Link> : '—'}
                         </td>
                         <td>
-                          <div className="actions">
+                          <div className="row-actions">
                             <button
-                              className="btn primary"
+                              className="btn primary compact"
                               type="button"
                               disabled={!task.isEnabled || runningId === task.id}
                               onClick={() => handleRun(task)}
                             >
-                              {runningId === task.id ? t('tasks.running') : t('tasks.run')}
+                              <Play size={14} weight="fill" />{runningId === task.id ? t('tasks.running') : t('tasks.run')}
                             </button>
-                            <Link className="btn" to={`/tasks/${task.id}`}>{t('tasks.detail')}</Link>
-                            <Link className="btn" to={`/tasks/${task.id}/edit`}>{t('tasks.edit')}</Link>
-                            <button className="btn danger" type="button" onClick={() => handleDelete(task)}>{t('tasks.delete')}</button>
+                            <Link className="btn compact" to={`/tasks/${task.id}`}>{t('tasks.detail')}</Link>
+                            <Link className="btn compact" to={`/tasks/${task.id}/edit`}>{t('tasks.edit')}</Link>
+                            <button className="btn danger compact" type="button" onClick={() => handleDelete(task)}>{t('tasks.delete')}</button>
                           </div>
                         </td>
                       </tr>
@@ -138,6 +147,6 @@ export function TasksPage() {
           </AsyncState>
         </div>
       </section>
-    </>
+    </div>
   )
 }

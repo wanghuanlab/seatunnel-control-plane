@@ -21,6 +21,7 @@ export const zh: Messages = {
     status: '状态',
     unnamedJob: '未命名作业',
     jobFallback: '作业 {id}',
+    records: '项',
   },
   nav: {
     space: '运行空间',
@@ -127,6 +128,7 @@ export const zh: Messages = {
     colCreated: '创建时间',
     colIO: '读取/写入',
     stop: '停止',
+    selectAll: '选择全部作业',
     detailTitle: '作业详情',
     backToList: '返回列表',
     stopJob: '停止作业',
@@ -351,6 +353,8 @@ export const zh: Messages = {
     colWait: '等待时长',
     colLacking: '缺少 TaskGroup',
     colReason: '失败原因',
+    lackingHint: '仍待分配的 TaskGroup 数量',
+    emptyWorkers: '暂无 Worker 资源快照',
   },
   submit: {
     title: '提交作业',

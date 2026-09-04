@@ -106,7 +106,7 @@ export function TaskDetailPage() {
             </div>
 
             {tab === 'basic' && (
-              <section className="panel">
+              <section className="panel task-basic-panel">
                 <div className="panel-header">
                   <h2 className="panel-title">{t('tasks.basic')}</h2>
                   <StatusBadge status={detail.lastJobStatus} />

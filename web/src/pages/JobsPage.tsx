@@ -1,3 +1,4 @@
+import { ArrowsClockwise, StopCircle } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { seatunnelApi } from '../api/client'
 import { AsyncState } from '../components/AsyncState'
@@ -29,6 +30,10 @@ export function JobsPage() {
   useEffect(() => {
     setFinishedPage(1)
   }, [finishedState])
+
+  useEffect(() => {
+    setSelectedIds([])
+  }, [runningPage, pageSize])
 
   const running = usePolling(
     () => seatunnelApi.getRunningJobs(runningPage, pageSize),
@@ -77,41 +82,46 @@ export function JobsPage() {
     setSelectedIds((ids) => (checked ? [...new Set([...ids, jobId])] : ids.filter((id) => id !== jobId)))
   }
 
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds(checked ? jobs.map((job) => job.jobId) : [])
+  }
+
   return (
-    <>
-      <header className="page-header">
+    <div className="run-space run-jobs">
+      <header className="run-page-header">
         <div>
-          <h1 className="page-title">{t('jobs.title')}</h1>
-          <p className="page-desc">{t('jobs.desc')}</p>
+          <span className="run-page-kicker">{t('nav.space')}</span>
+          <h1 className="run-page-title">{t('jobs.title')}</h1>
+          <p className="run-page-desc">{t('jobs.desc')}</p>
         </div>
-        <div className="actions">
-          <label className="inline-check">
+        <div className="run-page-actions">
+          <label className="run-refresh-control">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
             {t('app.autoRefresh')}
           </label>
           {tab === 'running' && selectedIds.length > 0 && (
             <button className="btn danger" type="button" onClick={handleBatchStop}>
-              {t('jobs.batchStop', { count: selectedIds.length })}
+              <StopCircle size={16} weight="fill" />{t('jobs.batchStop', { count: selectedIds.length })}
             </button>
           )}
         </div>
       </header>
 
-      <div className="tabs">
-        <button className={`tab${tab === 'running' ? ' active' : ''}`} type="button" onClick={() => setTab('running')}>
+      <div className="run-tabs" role="tablist" aria-label={t('jobs.title')}>
+        <button className={`run-tab${tab === 'running' ? ' active' : ''}`} type="button" role="tab" aria-selected={tab === 'running'} onClick={() => { setTab('running'); setSelectedIds([]) }}>
           {t('jobs.running')}
         </button>
-        <button className={`tab${tab === 'finished' ? ' active' : ''}`} type="button" onClick={() => setTab('finished')}>
+        <button className={`run-tab${tab === 'finished' ? ' active' : ''}`} type="button" role="tab" aria-selected={tab === 'finished'} onClick={() => { setTab('finished'); setSelectedIds([]) }}>
           {t('jobs.finished')}
         </button>
       </div>
 
       {tab === 'finished' && (
-        <div className="tabs">
+        <div className="run-filter-bar" aria-label={t('jobs.finishedTitle')}>
           {FINISHED_STATES.map((state) => (
             <button
               key={state}
-              className={`tab${finishedState === state ? ' active' : ''}`}
+              className={`run-filter-chip${finishedState === state ? ' active' : ''}`}
               type="button"
               onClick={() => setFinishedState(state)}
             >
@@ -121,12 +131,12 @@ export function JobsPage() {
         </div>
       )}
 
-      <section className="panel">
-        <div className="panel-header">
-          <h2 className="panel-title">{tab === 'running' ? t('jobs.runningTitle') : t('jobs.finishedTitle')}</h2>
-          <button className="btn" type="button" onClick={() => active.reload()}>{t('app.refresh')}</button>
+      <section className="run-panel">
+        <div className="run-panel-header">
+          <div><span className="run-panel-kicker">{tab === 'running' ? t('jobs.running') : t('jobs.finished')}</span><h2>{tab === 'running' ? t('jobs.runningTitle') : t('jobs.finishedTitle')}</h2></div>
+          <div className="run-panel-header-actions"><span className="run-panel-meta">{total} {t('app.records')}</span><button className="btn compact" type="button" onClick={() => active.reload()}><ArrowsClockwise size={16} />{t('app.refresh')}</button></div>
         </div>
-        <div className="panel-body">
+        <div className="run-panel-body">
           <AsyncState
             loading={active.loading}
             error={active.error}
@@ -142,6 +152,7 @@ export function JobsPage() {
                   selectable={tab === 'running'}
                   selectedIds={selectedIds}
                   onToggle={toggleSelection}
+                  onToggleAll={toggleAll}
                   onStop={handleStop}
                 />
                 <Pagination
@@ -160,6 +171,6 @@ export function JobsPage() {
           </AsyncState>
         </div>
       </section>
-    </>
+    </div>
   )
 }

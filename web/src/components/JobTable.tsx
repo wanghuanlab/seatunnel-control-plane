@@ -10,6 +10,7 @@ export function JobTable({
   selectable = false,
   selectedIds = [],
   onToggle,
+  onToggleAll,
   onStop,
 }: {
   jobs: JobSummary[]
@@ -17,6 +18,7 @@ export function JobTable({
   selectable?: boolean
   selectedIds?: string[]
   onToggle?: (jobId: string, checked: boolean) => void
+  onToggleAll?: (checked: boolean) => void
   onStop?: (jobId: string) => void
 }) {
   const { t } = useI18n()
@@ -27,7 +29,7 @@ export function JobTable({
       <table className="data-table">
         <thead>
           <tr>
-            {selectable && <th />}
+            {selectable && <th className="select-column"><input aria-label={t('jobs.selectAll')} type="checkbox" checked={rows.length > 0 && rows.every((job) => selectedIds.includes(job.jobId))} onChange={(event) => onToggleAll?.(event.target.checked)} /></th>}
             <th>{t('jobs.colId')}</th>
             <th>{t('jobs.colName')}</th>
             <th>{t('jobs.colStatus')}</th>
@@ -60,7 +62,7 @@ export function JobTable({
                 <td className="mono">{read} / {write}</td>
                 {showActions && (
                   <td>
-                    <button className="btn danger" type="button" onClick={() => onStop?.(job.jobId)}>
+                    <button className="btn danger compact" type="button" onClick={() => onStop?.(job.jobId)}>
                       {t('jobs.stop')}
                     </button>
                   </td>

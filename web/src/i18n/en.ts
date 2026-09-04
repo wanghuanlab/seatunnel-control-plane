@@ -19,6 +19,7 @@ export const en = {
     status: 'Status',
     unnamedJob: 'Unnamed job',
     jobFallback: 'Job {id}',
+    records: 'records',
   },
   nav: {
     space: 'Run space',
@@ -125,6 +126,7 @@ export const en = {
     colCreated: 'Created',
     colIO: 'Read / write',
     stop: 'Stop',
+    selectAll: 'Select all jobs',
     detailTitle: 'Job detail',
     backToList: 'Back to list',
     stopJob: 'Stop job',
@@ -349,6 +351,8 @@ export const en = {
     colWait: 'Wait time',
     colLacking: 'Missing TaskGroups',
     colReason: 'Failure reason',
+    lackingHint: 'TaskGroups still needed',
+    emptyWorkers: 'No worker snapshot is available',
   },
   submit: {
     title: 'Submit job',

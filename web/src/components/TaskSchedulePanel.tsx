@@ -48,7 +48,7 @@ export function TaskSchedulePanel({ taskId }: { taskId: number }) {
   }
 
   return (
-    <section className="panel">
+    <section className="panel task-schedule-panel">
       <div className="panel-header">
         <h2 className="panel-title">{t('schedule.title')}</h2>
         <label className="inline-check">

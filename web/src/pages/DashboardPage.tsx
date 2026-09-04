@@ -99,7 +99,7 @@ export function DashboardPage() {
   const runningJobs = running.data?.data || []
   const runningCount = running.data?.total ?? runningJobs.length
 
-  return <div className="workspace-page">
+  return <div className="run-space run-dashboard workspace-page">
     <header className="workspace-header">
       <div><div className="eyebrow"><span className="eyebrow-pulse" /> {t('dashboard.eyebrow')}</div><h1 className="workspace-title">{t('dashboard.title')}</h1><p>{t('dashboard.desc')}</p></div>
       <div className="workspace-actions">
