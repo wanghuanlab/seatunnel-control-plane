@@ -6,6 +6,7 @@ import { AsyncState } from '../components/AsyncState'
 import { StatusBadge } from '../components/StatusBadge'
 import { usePolling } from '../hooks/usePolling'
 import { useI18n } from '../i18n'
+import { describeCronPeriod } from '../utils/cron'
 import { formatTimestamp } from '../utils/format'
 import type { Task } from '../types/tasks'
 
@@ -87,59 +88,59 @@ export function TasksPage() {
                       <th>{t('tasks.colFormat')}</th>
                       <th>{t('tasks.colSchedule')}</th>
                       <th>{t('tasks.colNext')}</th>
-                      <th>{t('tasks.colCreated')}</th>
                       <th>{t('tasks.colLastRun')}</th>
+                      <th>{t('tasks.colCreated')}</th>
                       <th>{t('tasks.colLastStatus')}</th>
-                      <th>{t('tasks.colLastJob')}</th>
                       <th>{t('app.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((task) => (
-                      <tr key={task.id}>
-                        <td>
-                          <Link className="run-table-primary" to={`/tasks/${task.id}`}>{task.name}</Link>
-                          {task.description && <div className="run-table-secondary">{task.description}</div>}
-                        </td>
-                        <td className="mono">{task.configFormat}</td>
-                        <td>
-                          {task.schedule?.enabled ? (
-                            <Link to={`/tasks/${task.id}?tab=schedule`} title={task.schedule.cronExpr}>
-                              <span className="schedule-badge enabled">{t('tasks.scheduleOn')}</span>
-                              <div className="run-table-secondary schedule-description">
-                                {task.schedule.description}
-                              </div>
-                            </Link>
-                          ) : (
-                            <Link to={`/tasks/${task.id}?tab=schedule`}>
-                              <span className="schedule-badge">{t('tasks.scheduleOff')}</span>
-                            </Link>
-                          )}
-                        </td>
-                        <td>{formatTimestamp(task.schedule?.nextRunAt ?? null)}</td>
-                        <td>{formatTimestamp(task.createdAt)}</td>
-                        <td>{formatTimestamp(task.lastRunAt)}</td>
-                        <td><StatusBadge status={task.lastJobStatus} /></td>
-                        <td className="mono">
-                          {task.lastJobId ? <Link to={`/jobs/${task.lastJobId}`}>{task.lastJobId}</Link> : '—'}
-                        </td>
-                        <td>
-                          <div className="row-actions">
-                            <button
-                              className="btn primary compact"
-                              type="button"
-                              disabled={!task.isEnabled || runningId === task.id}
-                              onClick={() => handleRun(task)}
+                    {rows.map((task) => {
+                      const scheduleOn = Boolean(task.schedule?.enabled)
+                      const period = scheduleOn && task.schedule?.cronConfig
+                        ? describeCronPeriod(task.schedule.cronConfig, t)
+                        : null
+                      return (
+                        <tr key={task.id}>
+                          <td>
+                            <Link className="run-table-primary" to={`/tasks/${task.id}`}>{task.name}</Link>
+                            {task.description && <div className="run-table-secondary">{task.description}</div>}
+                          </td>
+                          <td className="mono">{task.configFormat}</td>
+                          <td>
+                            <Link
+                              className="schedule-inline"
+                              to={`/tasks/${task.id}?tab=schedule`}
+                              title={task.schedule?.cronExpr || undefined}
                             >
-                              <Play size={14} weight="fill" />{runningId === task.id ? t('tasks.running') : t('tasks.run')}
-                            </button>
-                            <Link className="btn compact" to={`/tasks/${task.id}`}>{t('tasks.detail')}</Link>
-                            <Link className="btn compact" to={`/tasks/${task.id}/edit`}>{t('tasks.edit')}</Link>
-                            <button className="btn danger compact" type="button" onClick={() => handleDelete(task)}>{t('tasks.delete')}</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              <span className={`schedule-badge${scheduleOn ? ' enabled' : ''}`}>
+                                {scheduleOn ? t('tasks.scheduleOn') : t('tasks.scheduleOff')}
+                              </span>
+                              {period && <span className="schedule-period">{period}</span>}
+                            </Link>
+                          </td>
+                          <td>{formatTimestamp(task.schedule?.nextRunAt ?? null)}</td>
+                          <td>{formatTimestamp(task.lastRunAt)}</td>
+                          <td>{formatTimestamp(task.createdAt)}</td>
+                          <td><StatusBadge status={task.lastJobStatus} /></td>
+                          <td>
+                            <div className="row-actions">
+                              <button
+                                className="btn primary compact"
+                                type="button"
+                                disabled={!task.isEnabled || runningId === task.id}
+                                onClick={() => handleRun(task)}
+                              >
+                                <Play size={14} weight="fill" />{runningId === task.id ? t('tasks.running') : t('tasks.run')}
+                              </button>
+                              <Link className="btn compact" to={`/tasks/${task.id}`}>{t('tasks.detail')}</Link>
+                              <Link className="btn compact" to={`/tasks/${task.id}/edit`}>{t('tasks.edit')}</Link>
+                              <button className="btn danger compact" type="button" onClick={() => handleDelete(task)}>{t('tasks.delete')}</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

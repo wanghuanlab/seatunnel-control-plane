@@ -63,6 +63,13 @@ export interface TaskRun {
   finishedAt: string | null
 }
 
+export interface PaginatedTaskRuns {
+  data: TaskRun[]
+  total: number
+  page?: number
+  rows?: number
+}
+
 export interface TaskPayload {
   name: string
   description?: string

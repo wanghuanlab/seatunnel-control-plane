@@ -144,6 +144,9 @@ export function createUser({ username, password, role = 'user', isEnabled = true
   if (!/^[a-zA-Z0-9_\-.]{3,64}$/.test(name)) {
     throw new Error('用户名需为 3-64 位字母数字或 _-.')
   }
+  if (name.toLowerCase() === 'admin') {
+    throw new Error('不能创建名为 admin 的用户')
+  }
   const pwd = String(password || '')
   if (pwd.length < 6) throw new Error('密码至少 6 位')
   const nextRole = role === 'admin' ? 'admin' : 'user'
@@ -171,6 +174,10 @@ export function countEnabledAdmins(excludeUserId = null) {
   return Number(row?.c || 0)
 }
 
+export function isProtectedAdminUser(user) {
+  return String(user?.username || '').toLowerCase() === 'admin'
+}
+
 export function updateUser(id, payload, actorUserId) {
   const current = dbGet('SELECT * FROM users WHERE id = ?', [id])
   if (!current) throw new Error('用户不存在')
@@ -178,6 +185,15 @@ export function updateUser(id, payload, actorUserId) {
   const nextRole = payload.role === undefined ? current.role : payload.role === 'admin' ? 'admin' : 'user'
   const nextEnabled =
     payload.isEnabled === undefined ? toBool(current.is_enabled) : Boolean(payload.isEnabled)
+
+  if (isProtectedAdminUser(current)) {
+    const roleChange = payload.role !== undefined && nextRole !== current.role
+    const enabledChange =
+      payload.isEnabled !== undefined && nextEnabled !== toBool(current.is_enabled)
+    if (roleChange || enabledChange) {
+      throw new Error('内置 admin 账号仅允许重置密码，不能修改角色或启用状态')
+    }
+  }
 
   if (current.role === 'admin' && (nextRole !== 'admin' || !nextEnabled)) {
     if (countEnabledAdmins(id) < 1) {

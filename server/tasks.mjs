@@ -183,14 +183,18 @@ export async function runTask(id) {
   }
 }
 
-export async function listTaskRuns(taskId, limit = 20) {
-  const rows = dbAll(
-    'SELECT * FROM task_runs WHERE task_id = ? ORDER BY started_at DESC LIMIT ?',
-    [taskId, limit],
+export async function listTaskRuns(taskId, { page = 1, rows = 20 } = {}) {
+  const safePage = Math.max(1, Number(page) || 1)
+  const safeRows = Math.min(200, Math.max(1, Number(rows) || 20))
+  const total = Number(dbGet('SELECT COUNT(*) AS c FROM task_runs WHERE task_id = ?', [taskId])?.c || 0)
+  const offset = (safePage - 1) * safeRows
+  const list = dbAll(
+    'SELECT * FROM task_runs WHERE task_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?',
+    [taskId, safeRows, offset],
   )
 
   const synced = await Promise.all(
-    rows.map(async (row) => {
+    list.map(async (row) => {
       if (!isActiveJobStatus(row.status)) return row
       try {
         const info = await fetchJobInfo(row.job_id)
@@ -209,5 +213,10 @@ export async function listTaskRuns(taskId, limit = 20) {
     }),
   )
 
-  return synced.map(mapRun)
+  return {
+    data: synced.map(mapRun),
+    total,
+    page: safePage,
+    rows: safeRows,
+  }
 }

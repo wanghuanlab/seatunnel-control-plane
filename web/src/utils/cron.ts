@@ -21,11 +21,32 @@ export const CRON_PRESET_OPTIONS: Array<{ value: CronPreset; labelKey: string; h
   { value: 'custom', labelKey: 'schedule.presetCustom', hintKey: 'schedule.presetCustomHint' },
 ]
 
-export const TIMEZONE_OPTIONS: Array<{ value: string; labelKey: string }> = [
-  { value: 'Asia/Shanghai', labelKey: 'schedule.tzShanghai' },
-  { value: 'Asia/Hong_Kong', labelKey: 'schedule.tzHongKong' },
-  { value: 'UTC', labelKey: 'schedule.tzUtc' },
-]
+const PREFERRED_TIMEZONES = ['Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Tokyo', 'UTC', 'America/New_York', 'Europe/London']
+
+/** All IANA time zones available in the current runtime. */
+export function listTimezones(current?: string): string[] {
+  let all: string[] = []
+  try {
+    if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
+      all = Intl.supportedValuesOf('timeZone')
+    }
+  } catch {
+    all = []
+  }
+  if (!all.length) {
+    all = [...PREFERRED_TIMEZONES]
+  }
+
+  const preferred = PREFERRED_TIMEZONES.filter((tz) => all.includes(tz))
+  const preferredSet = new Set(preferred)
+  const rest = all.filter((tz) => !preferredSet.has(tz))
+  const ordered = [...preferred, ...rest]
+
+  if (current && !ordered.includes(current)) {
+    return [current, ...ordered]
+  }
+  return ordered
+}
 
 export function defaultCronConfig(): CronEditorConfig {
   return {
@@ -75,24 +96,35 @@ export function buildCronExpression(config: CronEditorConfig, t?: Translate): st
   throw new Error(tr('schedule.errUnsupported', { preset }))
 }
 
-export function describeCronExpression(config: CronEditorConfig, timezone = 'Asia/Shanghai', t?: Translate): string {
-    const tr = t ?? ((key: string) => key)
+export function describeCronPeriod(config: CronEditorConfig, t?: Translate): string {
+  const tr = t ?? ((key: string) => key)
   try {
     const expr = buildCronExpression(config, t)
     const time = `${pad(config.hour ?? 9)}:${pad(config.minuteOfHour ?? 0)}`
-    if (config.preset === 'every_minute') return tr('schedule.describeEveryMinute', { tz: timezone })
-    if (config.preset === 'hourly') return tr('schedule.describeHourly', { tz: timezone, minute: config.minute ?? 0 })
-    if (config.preset === 'daily') return tr('schedule.describeDaily', { tz: timezone, time })
+    if (config.preset === 'every_minute') return tr('schedule.periodEveryMinute')
+    if (config.preset === 'hourly') return tr('schedule.periodHourly', { minute: config.minute ?? 0 })
+    if (config.preset === 'daily') return tr('schedule.periodDaily', { time })
     if (config.preset === 'weekly') {
       const sep = document.documentElement.dataset.locale === 'zh' ? '、' : ', '
       const days = (config.daysOfWeek || [1]).map((day) => weekdayLabel(day, t)).join(sep)
-      return tr('schedule.describeWeekly', { tz: timezone, days, time })
+      return tr('schedule.periodWeekly', { days, time })
     }
     if (config.preset === 'monthly') {
-      return tr('schedule.describeMonthly', { tz: timezone, day: config.dayOfMonth ?? 1, time })
+      return tr('schedule.periodMonthly', { day: config.dayOfMonth ?? 1, time })
     }
-    if (config.preset === 'custom') return tr('schedule.describeCustom', { tz: timezone, expr })
+    if (config.preset === 'custom') return tr('schedule.periodCustom', { expr })
     return `Cron: ${expr}`
+  } catch (error) {
+    return String(error)
+  }
+}
+
+export function describeCronExpression(config: CronEditorConfig, timezone = 'Asia/Shanghai', t?: Translate): string {
+  const tr = t ?? ((key: string) => key)
+  try {
+    buildCronExpression(config, t)
+    const period = describeCronPeriod(config, t)
+    return tr('schedule.describeWithTimezone', { tz: timezone, period })
   } catch (error) {
     return String(error)
   }

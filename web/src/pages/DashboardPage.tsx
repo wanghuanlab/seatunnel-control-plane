@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowRight,
   ClockCountdown,
@@ -18,7 +18,8 @@ import { useAuth } from '../auth/AuthContext'
 import { usePolling } from '../hooks/usePolling'
 import type { JobSummary, WorkerResource } from '../types/api'
 import type { Task } from '../types/tasks'
-import { formatSystemNodeRole, formatTimestamp } from '../utils/format'
+import { describeCronPeriod } from '../utils/cron'
+import { elapsedMsSince, formatElapsed, formatSystemNodeRole, formatTimestamp } from '../utils/format'
 import { useI18n } from '../i18n'
 
 function toNum(value: string | number | null | undefined): number {
@@ -43,7 +44,7 @@ function Progress({ value }: { value: number | null }) {
 
 function FlowNode({ title, subtitle, tone, to, live = false }: {
   title: string
-  subtitle: string
+  subtitle: ReactNode
   tone: 'scheduled' | 'running' | 'pending'
   to?: string
   live?: boolean
@@ -64,6 +65,20 @@ function FlowLane({ icon, title, count, status, children }: {
 
 function getScheduledTasks(tasks: Task[] | null) {
   return (tasks || []).filter((task) => task.isEnabled && task.schedule?.enabled).slice(0, 4)
+}
+
+function FlowSubtitleRows({ rows }: { rows: Array<{ label: string; value: string }> }) {
+  return (
+    <>
+      {rows.map((row, index) => (
+        <span key={`${index}-${row.label}`} className="flow-node-line">
+          <span className="flow-node-label">{row.label}</span>
+          <span className="flow-node-sep">:</span>
+          <span className="flow-node-value">{row.value}</span>
+        </span>
+      ))}
+    </>
+  )
 }
 
 export function DashboardPage() {
@@ -131,19 +146,131 @@ export function DashboardPage() {
           <div className="workflow-board-header"><div><div className="section-kicker">{t('dashboard.pathKicker')}</div><h2>{t('dashboard.workflow')}</h2><p>{t('dashboard.workflowHint')}</p></div><div className="workflow-legend"><span><i className="legend-dot scheduled" />{t('dashboard.scheduled')}</span><span><i className="legend-dot running" />{t('dashboard.running')}</span><span><i className="legend-dot pending" />{t('dashboard.pending')}</span></div></div>
           <div className="workflow-lanes">
             <FlowLane icon={<ClockCountdown size={20} />} title={t('dashboard.laneSchedule')} count={schedules.length} status={t('dashboard.laneScheduleStatus')}>
-              {schedules.length ? schedules.map((task) => <FlowNode key={task.id} tone="scheduled" title={task.name} subtitle={task.schedule?.description || t('dashboard.onSchedule')} to={`/tasks/${task.id}`} />) : <Link className="flow-empty" to="/tasks/new"><span className="plus-mark">+</span> {t('dashboard.noSchedules')}</Link>}
+              {schedules.length ? schedules.map((task) => {
+                const cycle = task.schedule?.cronConfig
+                  ? describeCronPeriod(task.schedule.cronConfig, t)
+                  : (task.schedule?.description || t('dashboard.onSchedule'))
+                const next = task.schedule?.nextRunAt
+                  ? formatTimestamp(task.schedule.nextRunAt)
+                  : '—'
+                return (
+                  <FlowNode
+                    key={task.id}
+                    tone="scheduled"
+                    title={task.name}
+                    subtitle={(
+                      <FlowSubtitleRows
+                        rows={[
+                          { label: t('dashboard.scheduleCycleLabel'), value: cycle },
+                          { label: t('dashboard.scheduleNextLabel'), value: next },
+                        ]}
+                      />
+                    )}
+                    to={`/tasks/${task.id}`}
+                  />
+                )
+              }) : <Link className="flow-empty" to="/tasks/new"><span className="plus-mark">+</span> {t('dashboard.noSchedules')}</Link>}
             </FlowLane>
             <FlowLane icon={<PlayCircle size={20} />} title={t('dashboard.laneRunning')} count={runningCount} status={t('dashboard.laneRunningStatus')}>
-              {runningJobs.length ? runningJobs.map((job) => <FlowNode key={job.jobId} tone="running" title={job.jobName || t('app.jobFallback', { id: job.jobId })} subtitle={t('dashboard.runningSince', { time: formatTimestamp(job.createTime) })} to={`/jobs/${job.jobId}`} live />) : <div className="flow-empty quiet">{t('dashboard.noRunning')}</div>}
+              {runningJobs.length ? runningJobs.map((job) => (
+                <FlowNode
+                  key={job.jobId}
+                  tone="running"
+                  title={job.jobName || t('app.jobFallback', { id: job.jobId })}
+                  subtitle={(
+                    <FlowSubtitleRows
+                      rows={[
+                        { label: t('dashboard.runningStartLabel'), value: formatTimestamp(job.createTime) },
+                        { label: t('dashboard.runningElapsedLabel'), value: formatElapsed(elapsedMsSince(job.createTime)) },
+                      ]}
+                    />
+                  )}
+                  to={`/jobs/${job.jobId}`}
+                  live
+                />
+              )) : <div className="flow-empty quiet">{t('dashboard.noRunning')}</div>}
             </FlowLane>
             <FlowLane icon={<Queue size={20} />} title={t('dashboard.lanePending')} count={pending.data?.pendingJobs.length || 0} status={t('dashboard.lanePendingStatus')}>
-              {pending.data?.pendingJobs.length ? pending.data.pendingJobs.map((job) => <FlowNode key={job.jobId} tone="pending" title={job.jobName || t('app.jobFallback', { id: job.jobId })} subtitle={`${Math.round(job.waitDurationMs / 1000)}s · ${job.failureReason || t('dashboard.waitingSchedule')}`} to={`/jobs/${job.jobId}`} />) : <div className="flow-empty quiet">{t('dashboard.noPending')}</div>}
+              {pending.data?.pendingJobs.length ? pending.data.pendingJobs.map((job) => {
+                const waitMs = Number(job.waitDurationMs) || 0
+                const joinedAt = formatTimestamp(Date.now() - waitMs)
+                return (
+                  <FlowNode
+                    key={job.jobId}
+                    tone="pending"
+                    title={job.jobName || t('app.jobFallback', { id: job.jobId })}
+                    subtitle={(
+                      <FlowSubtitleRows
+                        rows={[
+                          { label: t('dashboard.pendingJoinedLabel'), value: joinedAt },
+                          { label: t('dashboard.pendingWaitedLabel'), value: formatElapsed(waitMs) },
+                        ]}
+                      />
+                    )}
+                    to={`/jobs/${job.jobId}`}
+                  />
+                )
+              }) : <div className="flow-empty quiet">{t('dashboard.noPending')}</div>}
             </FlowLane>
           </div>
         </section>
 
         <div className="operations-grid">
-          <section className="data-surface capacity-surface"><div className="surface-header"><div><div className="section-kicker">{t('dashboard.capacityKicker')}</div><h2>{t('dashboard.capacity')}</h2></div><Link to="/system">{t('dashboard.resourceMonitor')} <ArrowRight size={15} /></Link></div><div className="capacity-summary"><div className="capacity-ring"><span>{totalSlot > 0 ? Math.round((usedSlot / totalSlot) * 100) : 0}%</span><small>{t('dashboard.slotUse')}</small></div><div className="capacity-list"><div><span><Gauge size={16} /> Worker</span><strong>{cluster.workers}</strong><small>{t('dashboard.onlineNodes')}</small></div><div><span>{t('dashboard.assignedSlots')}</span><strong>{totalSlot > 0 ? `${usedSlot} / ${totalSlot}` : 'dynamic'}</strong><small>{totalSlot > 0 ? t('dashboard.slotsFree', { count: freeSlot }) : t('dashboard.dynamicSlots')}</small></div><div><span>{t('dashboard.finishedJobs')}</span><strong>{completedCount}</strong><small>{t('dashboard.cumulative')}</small></div></div></div><div className="worker-mini-list">{workerList.slice(0, 4).map((worker) => <div key={worker.address}><span className="worker-state" /><code>{worker.address}</code><span>{worker.dynamicSlot ? 'dynamic-slot' : `${worker.freeSlots}/${worker.totalSlots} free`}</span><Progress value={usagePercent(worker.cpuUsage)} /></div>)}{!workerList.length && <div className="data-empty">{t('dashboard.noWorkers')}</div>}</div></section>
+          <section className="data-surface capacity-surface">
+            <div className="surface-header">
+              <div>
+                <div className="section-kicker">{t('dashboard.capacityKicker')}</div>
+                <h2>{t('dashboard.capacity')}</h2>
+              </div>
+              <Link to="/system">{t('dashboard.resourceMonitor')} <ArrowRight size={15} /></Link>
+            </div>
+            <div className="capacity-cards">
+              <div className="capacity-card">
+                <span className="capacity-card-label"><Gauge size={14} /> Worker</span>
+                <strong className="capacity-card-value">{cluster.workers}</strong>
+                <span className="capacity-card-foot">{t('dashboard.onlineNodes')}</span>
+              </div>
+              <div className="capacity-card">
+                <span className="capacity-card-label">{t('dashboard.assignedSlots')}</span>
+                <strong className="capacity-card-value">
+                  {totalSlot > 0 ? `${usedSlot} / ${totalSlot}` : 'dynamic'}
+                </strong>
+                <span className="capacity-card-foot">
+                  {totalSlot > 0 ? t('dashboard.slotsFree', { count: freeSlot }) : t('dashboard.dynamicSlots')}
+                </span>
+                {totalSlot > 0 && (
+                  <div className="capacity-bar" aria-hidden>
+                    <i style={{ width: `${Math.round((usedSlot / totalSlot) * 100)}%` }} />
+                  </div>
+                )}
+              </div>
+              <div className="capacity-card">
+                <span className="capacity-card-label">{t('dashboard.slotUse')}</span>
+                <strong className="capacity-card-value">
+                  {totalSlot > 0 ? `${Math.round((usedSlot / totalSlot) * 100)}%` : '—'}
+                </strong>
+                <span className="capacity-card-foot">
+                  {totalSlot > 0 ? t('dashboard.slotsUsedHint', { used: usedSlot, total: totalSlot }) : t('dashboard.dynamicSlots')}
+                </span>
+              </div>
+              <div className="capacity-card">
+                <span className="capacity-card-label">{t('dashboard.finishedJobs')}</span>
+                <strong className="capacity-card-value">{completedCount}</strong>
+                <span className="capacity-card-foot">{t('dashboard.cumulative')}</span>
+              </div>
+            </div>
+            <div className="worker-mini-list">
+              {workerList.slice(0, 4).map((worker) => (
+                <div key={worker.address}>
+                  <span className="worker-state" />
+                  <code>{worker.address}</code>
+                  <span>{worker.dynamicSlot ? 'dynamic-slot' : `${worker.freeSlots}/${worker.totalSlots} free`}</span>
+                  <Progress value={usagePercent(worker.cpuUsage)} />
+                </div>
+              ))}
+              {!workerList.length && <div className="data-empty">{t('dashboard.noWorkers')}</div>}
+            </div>
+          </section>
           <section className="data-surface job-surface"><div className="surface-header"><div><div className="section-kicker">{t('dashboard.eventsKicker')}</div><h2>{t('dashboard.jobStatus')}</h2></div><Link to="/jobs">{t('dashboard.allJobs')} <ArrowRight size={15} /></Link></div><div className="job-ledger"><div className="job-ledger-head"><span>{t('dashboard.colJob')}</span><span>{t('app.status')}</span><span>{t('dashboard.colSubmitted')}</span><span /></div>{runningJobs.slice(0, 4).map((job) => <JobLedgerRow key={job.jobId} job={job} />)}{!runningJobs.length && <div className="job-ledger-empty"><PlayCircle size={22} /><div><strong>{t('dashboard.quietTitle')}</strong><span>{t('dashboard.quietHint')}</span></div><Link to="/submit">{t('nav.submit')} <ArrowRight size={15} /></Link></div>}</div>{pendingCount > 0 && <Link className="attention-callout" to="/pending"><WarningCircle size={18} /><span><strong>{t('dashboard.pendingAlert', { count: pendingCount })}</strong><small>{t('dashboard.pendingAlertHint')}</small></span><ArrowRight size={16} /></Link>}</section>
         </div>
 

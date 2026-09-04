@@ -174,43 +174,49 @@ export function SettingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((item) => (
+                  {users.map((item) => {
+                    const isProtectedAdmin = item.username.toLowerCase() === 'admin'
+                    return (
                     <tr key={item.id}>
                       <td>{item.username}</td>
                       <td>{item.role === 'admin' ? t('settings.roleAdmin') : t('settings.roleUser')}</td>
                       <td>{item.isEnabled ? t('app.enabled') : t('app.disabled')}</td>
                       <td>
                         <div className="actions">
-                          <button
-                            className="btn"
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await usersApi.update(item.id, {
-                                  role: item.role === 'admin' ? 'user' : 'admin',
-                                })
-                                await loadUsers()
-                              } catch (error) {
-                                setUsersError(String(error instanceof Error ? error.message : error))
-                              }
-                            }}
-                          >
-                            {item.role === 'admin' ? t('settings.demote') : t('settings.promote')}
-                          </button>
-                          <button
-                            className="btn"
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await usersApi.update(item.id, { isEnabled: !item.isEnabled })
-                                await loadUsers()
-                              } catch (error) {
-                                setUsersError(String(error instanceof Error ? error.message : error))
-                              }
-                            }}
-                          >
-                            {item.isEnabled ? t('settings.disable') : t('settings.enable')}
-                          </button>
+                          {!isProtectedAdmin && (
+                            <>
+                              <button
+                                className="btn"
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await usersApi.update(item.id, {
+                                      role: item.role === 'admin' ? 'user' : 'admin',
+                                    })
+                                    await loadUsers()
+                                  } catch (error) {
+                                    setUsersError(String(error instanceof Error ? error.message : error))
+                                  }
+                                }}
+                              >
+                                {item.role === 'admin' ? t('settings.demote') : t('settings.promote')}
+                              </button>
+                              <button
+                                className="btn"
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await usersApi.update(item.id, { isEnabled: !item.isEnabled })
+                                    await loadUsers()
+                                  } catch (error) {
+                                    setUsersError(String(error instanceof Error ? error.message : error))
+                                  }
+                                }}
+                              >
+                                {item.isEnabled ? t('settings.disable') : t('settings.enable')}
+                              </button>
+                            </>
+                          )}
                           <button
                             className="btn"
                             type="button"
@@ -230,7 +236,8 @@ export function SettingsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

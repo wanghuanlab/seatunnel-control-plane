@@ -1,7 +1,8 @@
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { tasksApi } from '../api/tasksClient'
 import { AsyncState } from '../components/AsyncState'
+import { Pagination } from '../components/Pagination'
 import { StatusBadge } from '../components/StatusBadge'
 import { TaskSchedulePanel } from '../components/TaskSchedulePanel'
 import { usePolling } from '../hooks/usePolling'
@@ -25,9 +26,32 @@ export function TaskDetailPage() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [running, setRunning] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [runsPage, setRunsPage] = useState(1)
+  const [runsPageSize, setRunsPageSize] = useState(20)
+
+  useEffect(() => {
+    setRunsPage(1)
+  }, [id])
 
   const task = usePolling(() => tasksApi.get(taskId), [id], 10000, autoRefresh && tab !== 'schedule')
-  const runs = usePolling(() => tasksApi.runs(taskId), [id], 10000, autoRefresh && tab === 'runs')
+  const runs = usePolling(
+    () => tasksApi.runs(taskId, runsPage, runsPageSize),
+    [id, runsPage, runsPageSize],
+    10000,
+    autoRefresh && tab === 'runs',
+  )
+
+  const runRows = useMemo(
+    () => (Array.isArray(runs.data?.data) ? runs.data.data : []),
+    [runs.data],
+  )
+  const runsTotal = runs.data?.total ?? runRows.length
+
+  useEffect(() => {
+    if (runs.data == null) return
+    const pages = Math.max(1, Math.ceil(runsTotal / runsPageSize) || 1)
+    if (runsPage > pages) setRunsPage(pages)
+  }, [runs.data, runsPage, runsPageSize, runsTotal])
 
   const setTab = (next: DetailTab) => {
     setSearchParams(next === 'basic' ? {} : { tab: next }, { replace: true })
@@ -41,6 +65,7 @@ export function TaskDetailPage() {
     try {
       const result = await tasksApi.run(taskId)
       setMessage(t('tasks.submitted', { name: result.submitResult.jobName, id: result.submitResult.jobId }))
+      setRunsPage(1)
       await Promise.all([task.reload(), runs.reload()])
     } catch (error) {
       setMessage(String(error))
@@ -190,40 +215,58 @@ export function TaskDetailPage() {
                   <button className="btn" type="button" onClick={() => runs.reload()}>{t('app.refresh')}</button>
                 </div>
                 <div className="panel-body">
-                  <AsyncState loading={runs.loading} error={runs.error} data={runs.data} refreshing={runs.refreshing} emptyText={t('tasks.noRuns')}>
+                  <AsyncState
+                    loading={runs.loading}
+                    error={runs.error}
+                    data={runs.data == null ? null : runRows}
+                    refreshing={runs.refreshing}
+                    emptyText={t('tasks.noRuns')}
+                  >
                     {(items) => (
-                      <div className="table-wrap">
-                        <table className="data-table">
-                          <thead>
-                            <tr>
-                              <th>{t('jobs.colId')}</th>
-                              <th>{t('jobs.colName')}</th>
-                              <th>{t('app.status')}</th>
-                              <th>{t('tasks.colStarted')}</th>
-                              <th>{t('tasks.colFinished')}</th>
-                              <th>{t('tasks.colError')}</th>
-                              <th>{t('app.actions')}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {items.map((run) => (
-                              <tr key={run.id}>
-                                <td className="mono">
-                                  <Link to={`/jobs/${run.jobId}`}>{run.jobId}</Link>
-                                </td>
-                                <td>{run.jobName || '—'}</td>
-                                <td><StatusBadge status={run.status} /></td>
-                                <td>{formatTimestamp(run.startedAt)}</td>
-                                <td>{formatTimestamp(run.finishedAt)}</td>
-                                <td>{run.errorMsg || '—'}</td>
-                                <td>
-                                  <Link className="btn" to={`/jobs/${run.jobId}`}>{t('tasks.jobDetail')}</Link>
-                                </td>
+                      <>
+                        <div className="table-wrap">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>{t('jobs.colId')}</th>
+                                <th>{t('jobs.colName')}</th>
+                                <th>{t('app.status')}</th>
+                                <th>{t('tasks.colStarted')}</th>
+                                <th>{t('tasks.colFinished')}</th>
+                                <th>{t('tasks.colError')}</th>
+                                <th>{t('app.actions')}</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody>
+                              {items.map((run) => (
+                                <tr key={run.id}>
+                                  <td className="mono">
+                                    <Link to={`/jobs/${run.jobId}`}>{run.jobId}</Link>
+                                  </td>
+                                  <td>{run.jobName || '—'}</td>
+                                  <td><StatusBadge status={run.status} /></td>
+                                  <td>{formatTimestamp(run.startedAt)}</td>
+                                  <td>{formatTimestamp(run.finishedAt)}</td>
+                                  <td>{run.errorMsg || '—'}</td>
+                                  <td>
+                                    <Link className="btn" to={`/jobs/${run.jobId}`}>{t('tasks.jobDetail')}</Link>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <Pagination
+                          page={runsPage}
+                          pageSize={runsPageSize}
+                          total={runsTotal}
+                          onPageChange={setRunsPage}
+                          onPageSizeChange={(size) => {
+                            setRunsPageSize(size)
+                            setRunsPage(1)
+                          }}
+                        />
+                      </>
                     )}
                   </AsyncState>
                 </div>

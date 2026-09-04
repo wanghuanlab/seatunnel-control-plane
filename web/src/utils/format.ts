@@ -51,6 +51,25 @@ export function formatDuration(ms?: number): string {
   return `${Math.floor(ms / 60_000)} m ${Math.round((ms % 60_000) / 1000)} s`
 }
 
+export function elapsedMsSince(value?: string | number | null, now = Date.now()): number | null {
+  const date = parseTimestamp(value)
+  if (!date) return null
+  return Math.max(0, now - date.getTime())
+}
+
+/** Compact human duration for dashboard (e.g. 9h 42m). */
+export function formatElapsed(ms?: number | null): string {
+  if (ms == null || !Number.isFinite(ms)) return '—'
+  const totalSec = Math.floor(Math.max(0, ms) / 1000)
+  if (totalSec < 60) return `${totalSec}s`
+  const totalMin = Math.floor(totalSec / 60)
+  if (totalMin < 60) return `${totalMin}m ${totalSec % 60}s`
+  const totalHr = Math.floor(totalMin / 60)
+  if (totalHr < 48) return `${totalHr}h ${totalMin % 60}m`
+  const days = Math.floor(totalHr / 24)
+  return `${days}d ${totalHr % 24}h`
+}
+
 export function jobStatusTone(status?: string): 'running' | 'success' | 'warning' | 'danger' | 'muted' {
   const normalized = (status || '').toUpperCase()
   if (['RUNNING', 'PENDING', 'RESTORE', 'SUBMITTED'].includes(normalized)) return 'running'

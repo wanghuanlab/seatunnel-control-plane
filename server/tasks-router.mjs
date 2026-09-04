@@ -77,7 +77,9 @@ export async function handleTasksApi(req, res, pathname, searchParams) {
 
   const runsMatch = pathname.match(/^\/api\/tasks\/(\d+)\/runs$/)
   if (runsMatch && req.method === 'GET') {
-    const runs = await listTaskRuns(Number(runsMatch[1]))
+    const page = Number(searchParams.get('page')) || 1
+    const rows = Number(searchParams.get('rows')) || 20
+    const runs = await listTaskRuns(Number(runsMatch[1]), { page, rows })
     sendJson(res, 200, runs)
     return true
   }

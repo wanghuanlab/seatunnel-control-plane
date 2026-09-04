@@ -1,10 +1,11 @@
+import { useMemo } from 'react'
 import type { CronEditorConfig, CronPreset } from '../utils/cron'
 import {
   CRON_PRESET_OPTIONS,
-  TIMEZONE_OPTIONS,
   buildCronExpression,
   defaultCronConfig,
   describeCronExpression,
+  listTimezones,
   weekdayLabel,
 } from '../utils/cron'
 import { useI18n } from '../i18n'
@@ -18,6 +19,7 @@ interface Props {
 
 export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange }: Props) {
   const { t } = useI18n()
+  const timezones = useMemo(() => listTimezones(timezone), [timezone])
 
   const setPreset = (preset: CronPreset) => {
     onConfigChange({ ...defaultCronConfig(), ...config, preset })
@@ -150,8 +152,8 @@ export function CronEditor({ config, timezone, onConfigChange, onTimezoneChange 
       <div className="form-row">
         <label htmlFor="cronTimezone">{t('schedule.timezone')}</label>
         <select id="cronTimezone" value={timezone} onChange={(e) => onTimezoneChange(e.target.value)}>
-          {TIMEZONE_OPTIONS.map((tz) => (
-            <option key={tz.value} value={tz.value}>{t(tz.labelKey)}</option>
+          {timezones.map((tz) => (
+            <option key={tz} value={tz}>{tz}</option>
           ))}
         </select>
       </div>
