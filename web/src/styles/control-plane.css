@@ -149,6 +149,10 @@ body{background:var(--bg-root);letter-spacing:-.01em}body::before{background:lin
 .login-theme-toggle{align-items:center;background:rgba(255,255,255,.56);border:1px solid rgba(43,98,148,.21);border-radius:8px;color:#41627f;cursor:pointer;display:flex;height:36px;justify-content:center;transition:.18s ease;width:36px}
 .login-theme-toggle:hover{background:#fff;border-color:#4692df;color:#173c62;transform:translateY(-1px)}
 .login-shell.is-dark .login-theme-toggle{background:rgba(13,35,58,.72);border-color:rgba(126,174,226,.25);color:#9ac5ed}
+.login-github-link{align-items:center;background:rgba(255,255,255,.56);border:1px solid rgba(43,98,148,.21);border-radius:8px;color:#41627f;display:inline-flex;font-size:12px;font-weight:650;gap:6px;min-height:36px;padding:0 11px;text-decoration:none;transition:.18s ease}
+.login-github-link:hover{background:#fff;border-color:#4692df;color:#173c62;transform:translateY(-1px)}
+.login-shell.is-dark .login-github-link{background:rgba(13,35,58,.72);border-color:rgba(126,174,226,.25);color:#9ac5ed}
+.login-shell.is-dark .login-github-link:hover{background:rgba(18,48,78,.9);color:#e6f1ff}
 .login-stage{display:grid;gap:28px;justify-items:center;margin:0 auto;max-width:560px;min-height:calc(100svh - 96px);padding:8px 24px 72px;position:relative;text-align:center;z-index:2}
 .login-hero{max-width:520px}
 .login-eyebrow{color:#3e7597;font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;margin:0;text-transform:uppercase}
@@ -165,8 +169,10 @@ body{background:var(--bg-root);letter-spacing:-.01em}body::before{background:lin
 .login-shell.is-dark .login-form-kicker{color:#70c9ee}
 .login-form h2{color:#173552;font-size:22px;letter-spacing:-.04em;margin:0}
 .login-form>p{color:#6a829b;font-size:13px;margin:0}
+.login-form .login-demo-hint{background:rgba(20,110,209,.08);border:1px solid rgba(20,110,209,.16);border-radius:8px;color:#2f5f8a;font-family:var(--font-mono);font-size:11px;margin:0;padding:9px 11px}
 .login-shell.is-dark .login-form h2{color:#e6f1ff}
 .login-shell.is-dark .login-form>p{color:#89a2bf}
+.login-shell.is-dark .login-form .login-demo-hint{background:rgba(78,168,255,.1);border-color:rgba(78,168,255,.22);color:#9ec8ef}
 .login-form .form-row{display:grid;gap:7px}
 .login-form .form-row label{color:#54708d;font-size:11px}
 .login-shell.is-dark .login-form .form-row label{color:#a1bad3}
@@ -194,6 +200,8 @@ body{background:var(--bg-root);letter-spacing:-.01em}body::before{background:lin
 @media(max-width:720px){
   .login-topbar{gap:16px;padding:18px 16px}
   .login-topbar-actions{gap:8px}
+  .login-github-link span{display:none}
+  .login-github-link{justify-content:center;padding:0;width:36px}
   .login-stage{padding:12px 18px 48px}
   .login-wordmark{font-size:32px;max-width:none}
   .pagination{align-items:flex-start;flex-direction:column}

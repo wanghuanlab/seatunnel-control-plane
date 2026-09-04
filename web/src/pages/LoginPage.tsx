@@ -1,11 +1,13 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { ArrowRight, LockKey, Moon, Pulse, Sun } from '@phosphor-icons/react'
+import { ArrowRight, GithubLogo, LockKey, Moon, Pulse, Sun } from '@phosphor-icons/react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { LanguageSwitch } from '../components/LanguageSwitch'
 import { LoginFlowField } from '../components/LoginFlowField'
 import { useI18n } from '../i18n'
 import { localizeError } from '../i18n/errors'
+
+const GITHUB_REPO_URL = 'https://github.com/wanghuanlab/seatunnel-control-plane'
 
 export function LoginPage() {
   const { user, loading, login } = useAuth()
@@ -54,6 +56,17 @@ export function LoginPage() {
           </span>
         </div>
         <div className="login-topbar-actions">
+          <a
+            className="login-github-link"
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t('login.githubAria')}
+            title={t('login.githubAria')}
+          >
+            <GithubLogo size={17} weight="fill" />
+            <span>{t('login.github')}</span>
+          </a>
           <LanguageSwitch compact />
           <button
             className="login-theme-toggle"
@@ -76,6 +89,7 @@ export function LoginPage() {
           <div className="login-form-kicker"><LockKey size={15} /> {t('login.kicker')}</div>
           <h2>{t('login.heading')}</h2>
           <p>{t('login.description')}</p>
+          <p className="login-demo-hint">{t('login.demoHint')}</p>
           <div className="form-row">
             <label htmlFor="username">{t('login.username')}</label>
             <input
