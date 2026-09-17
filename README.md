@@ -2,7 +2,7 @@
 
 面向 [Apache SeaTunnel](https://seatunnel.apache.org/) **Zeta Engine REST API V2** 的可视化控制台：集群总览、作业与 Pending 诊断、任务模板与 Cron 调度、作业提交、日志与系统监控、本地账号与连接配置。
 
-本仓库已用 **Java（Spring Boot）+ Angular** 重写前后端，替代原先的 Node.js / React 实现。控制面将请求代理到可配置的 SeaTunnel API Base，自身元数据保存在 **PostgreSQL**，不依赖 SeaTunnel Java Client。
+后端为 **Java（Spring Boot）**，前端为 **Angular**。控制面将请求代理到可配置的 SeaTunnel API Base，自身元数据保存在 **PostgreSQL**，不依赖 SeaTunnel Java Client。
 
 | 模块 | 技术 | 说明 |
 | --- | --- | --- |
@@ -193,4 +193,3 @@ SeaTunnel 上游能力经 **`/api/seatunnel/**`** 代理（overview、running-jo
 
 - 控制面保存任务模板、调度、会话与设置，**不保存** SeaTunnel 实际同步的业务数据。
 - 当前为单一全局 SeaTunnel API Base；多集群 / 多租户尚未实现。
-- 旧版 Node.js + SQLite + React/Vite 栈已移除，请勿再按旧 `server/`、`web/`、`scripts/start.sh` 文档操作。
