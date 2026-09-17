@@ -1,0 +1,99 @@
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ i18n.t('tasks.detailTitle') }}</h1>
+    <p class="page-desc mono">#{{ taskId }}</p>
+  </div>
+  <div class="actions">
+    <label class="inline-check" *ngIf="tab !== 'schedule'">
+      <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+      {{ i18n.t('app.autoRefresh') }}
+    </label>
+    <a class="btn" routerLink="/tasks">{{ i18n.t('tasks.backToList') }}</a>
+    <a class="btn" [routerLink]="['/tasks', taskId, 'edit']">{{ i18n.t('tasks.edit') }}</a>
+    <button class="btn primary" type="button" [disabled]="running || !task.data?.isEnabled" (click)="handleRun()">
+      {{ running ? i18n.t('tasks.running') : i18n.t('tasks.run') }}
+    </button>
+    <button class="btn danger" type="button" (click)="handleDelete()">{{ i18n.t('tasks.delete') }}</button>
+  </div>
+</header>
+<div *ngIf="message" [class.panel]="submittedOk" [class.error]="!submittedOk" style="margin-bottom: 16px; padding: 16px">{{ message }}</div>
+<app-async-state [loading]="task.loading" [error]="task.error" [data]="task.data" [refreshing]="task.refreshing" [emptyText]="i18n.t('tasks.notFound')">
+  <ng-template let-detail>
+    <div class="tabs" style="margin-bottom: 16px">
+      <button class="tab" type="button" [class.active]="tab === 'basic'" (click)="setTab('basic')">{{ i18n.t('tasks.basic') }}</button>
+      <button class="tab" type="button" [class.active]="tab === 'schedule'" (click)="setTab('schedule')">{{ i18n.t('tasks.schedule') }}</button>
+      <button class="tab" type="button" [class.active]="tab === 'runs'" (click)="setTab('runs')">{{ i18n.t('tasks.runs') }}</button>
+    </div>
+    <section class="panel task-basic-panel" *ngIf="tab === 'basic'">
+      <div class="panel-header">
+        <h2 class="panel-title">{{ i18n.t('tasks.basic') }}</h2>
+        <app-status-badge [status]="detail.lastJobStatus"></app-status-badge>
+      </div>
+      <div class="panel-body">
+        <div class="metric-grid">
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.name') }}</div><div class="metric-value">{{ detail.name }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.description') }}</div><div class="metric-value">{{ detail.description || '—' }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.configFormat') }}</div><div class="metric-value mono">{{ detail.configFormat }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.defaultJobName') }}</div><div class="metric-value mono">{{ detail.defaultJobName || '—' }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.enableState') }}</div><div class="metric-value">{{ detail.isEnabled ? i18n.t('app.enabled') : i18n.t('app.disabled') }}</div></div>
+          <div class="metric-item">
+            <div class="metric-key">{{ i18n.t('tasks.colSchedule') }}</div>
+            <div class="metric-value">
+              <ng-container *ngIf="detail.schedule?.enabled">{{ i18n.t('tasks.scheduleOn') }} · <a [routerLink]="['/tasks', taskId]" [queryParams]="{ tab: 'schedule' }">{{ detail.schedule.description }}</a></ng-container>
+              <ng-container *ngIf="!detail.schedule?.enabled">{{ i18n.t('tasks.scheduleOff') }} · <a [routerLink]="['/tasks', taskId]" [queryParams]="{ tab: 'schedule' }">{{ i18n.t('tasks.goConfigure') }}</a></ng-container>
+            </div>
+          </div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.colCreated') }}</div><div class="metric-value">{{ formatTimestamp(detail.createdAt) }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.updatedAt') }}</div><div class="metric-value">{{ formatTimestamp(detail.updatedAt) }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.colLastRun') }}</div><div class="metric-value">{{ formatTimestamp(detail.lastRunAt) }}</div></div>
+          <div class="metric-item"><div class="metric-key">{{ i18n.t('tasks.lastJob') }}</div><div class="metric-value mono"><a *ngIf="detail.lastJobId" [routerLink]="['/jobs', detail.lastJobId]">{{ detail.lastJobId }}</a><span *ngIf="!detail.lastJobId">—</span></div></div>
+          <div class="metric-item" *ngIf="detail.lastErrorMsg"><div class="metric-key">{{ i18n.t('tasks.lastError') }}</div><div class="metric-value">{{ detail.lastErrorMsg }}</div></div>
+        </div>
+        <div style="margin-top: 18px">
+          <div class="metric-group-title">{{ i18n.t('tasks.jobConfig') }}</div>
+          <pre class="mono metrics-pre">{{ detail.configContent }}</pre>
+        </div>
+      </div>
+    </section>
+    <app-task-schedule-panel *ngIf="tab === 'schedule'" [taskId]="taskId"></app-task-schedule-panel>
+    <section class="panel" *ngIf="tab === 'runs'">
+      <div class="panel-header">
+        <h2 class="panel-title">{{ i18n.t('tasks.runs') }}</h2>
+        <button class="btn" type="button" (click)="runs.reload()">{{ i18n.t('app.refresh') }}</button>
+      </div>
+      <div class="panel-body">
+        <app-async-state [loading]="runs.loading" [error]="runs.error" [data]="runs.data == null ? null : runRows" [refreshing]="runs.refreshing" [emptyText]="i18n.t('tasks.noRuns')">
+          <ng-template let-items>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>{{ i18n.t('jobs.colId') }}</th>
+                    <th>{{ i18n.t('jobs.colName') }}</th>
+                    <th>{{ i18n.t('app.status') }}</th>
+                    <th>{{ i18n.t('tasks.colStarted') }}</th>
+                    <th>{{ i18n.t('tasks.colFinished') }}</th>
+                    <th>{{ i18n.t('tasks.colError') }}</th>
+                    <th>{{ i18n.t('app.actions') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let run of items">
+                    <td class="mono"><a [routerLink]="['/jobs', run.jobId]">{{ run.jobId }}</a></td>
+                    <td>{{ run.jobName || '—' }}</td>
+                    <td><app-status-badge [status]="run.status"></app-status-badge></td>
+                    <td>{{ formatTimestamp(run.startedAt) }}</td>
+                    <td>{{ formatTimestamp(run.finishedAt) }}</td>
+                    <td>{{ run.errorMsg || '—' }}</td>
+                    <td><a class="btn" [routerLink]="['/jobs', run.jobId]">{{ i18n.t('tasks.jobDetail') }}</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <app-pagination [page]="runsPage" [pageSize]="runsPageSize" [total]="runsTotal" (pageChange)="setRunsPage($event)" (pageSizeChange)="setRunsPageSize($event)"></app-pagination>
+          </ng-template>
+        </app-async-state>
+      </div>
+    </section>
+  </ng-template>
+</app-async-state>

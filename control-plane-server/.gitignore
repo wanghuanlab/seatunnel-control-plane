@@ -1,0 +1,13 @@
+target/
+package/*.jar
+package/logs/
+package/application.yml
+package/sql/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+*.log
+.DS_Store

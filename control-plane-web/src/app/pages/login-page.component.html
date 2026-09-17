@@ -1,0 +1,55 @@
+<div class="login-shell" [class.is-dark]="isDark">
+  <app-login-flow-field></app-login-flow-field>
+  <header class="login-topbar">
+    <div class="login-brand-lockup">
+      <span class="login-brand-orbit"><i nz-icon nzType="dashboard"></i></span>
+      <span>
+        <strong>{{ i18n.t('app.name') }}</strong>
+        <small>{{ i18n.t('app.subtitle') }}</small>
+      </span>
+    </div>
+    <div class="login-topbar-actions">
+      <a class="login-github-link" [href]="githubUrl" target="_blank" rel="noreferrer" [attr.aria-label]="i18n.t('login.githubAria')" [title]="i18n.t('login.githubAria')">
+        <i nz-icon nzType="github"></i>
+        <span>{{ i18n.t('login.github') }}</span>
+      </a>
+      <app-language-switch [compact]="true"></app-language-switch>
+      <button
+        class="login-theme-toggle"
+        type="button"
+        [attr.aria-label]="isDark ? i18n.t('topbar.themeToLight') : i18n.t('topbar.themeToDark')"
+        [title]="isDark ? i18n.t('topbar.themeToLight') : i18n.t('topbar.themeToDark')"
+        (click)="toggleTheme()"
+      >
+        <i nz-icon [nzType]="isDark ? 'bulb' : 'star'"></i>
+      </button>
+    </div>
+  </header>
+  <main class="login-stage">
+    <section class="login-hero" [attr.aria-label]="i18n.t('login.introAria')">
+      <p class="login-eyebrow">{{ i18n.t('login.eyebrow') }}</p>
+      <h1 class="login-wordmark">{{ i18n.t('login.title') }}</h1>
+      <p class="login-lead">{{ i18n.t('login.lead') }}</p>
+    </section>
+    <form class="login-form" (submit)="onSubmit($event)">
+      <div class="login-form-kicker"><i nz-icon nzType="lock"></i> {{ i18n.t('login.kicker') }}</div>
+      <h2>{{ i18n.t('login.heading') }}</h2>
+      <p>{{ i18n.t('login.description') }}</p>
+      <p class="login-demo-hint">{{ i18n.t('login.demoHint') }}</p>
+      <div class="form-row">
+        <label for="username">{{ i18n.t('login.username') }}</label>
+        <input id="username" autocomplete="username" autofocus name="username" [(ngModel)]="username" required />
+      </div>
+      <div class="form-row">
+        <label for="password">{{ i18n.t('login.password') }}</label>
+        <input id="password" type="password" autocomplete="current-password" name="password" [(ngModel)]="password" required />
+      </div>
+      <div class="error login-error" *ngIf="error">{{ error }}</div>
+      <button class="btn primary login-submit" type="submit" [disabled]="submitting || auth.loading">
+        <ng-container *ngIf="submitting">{{ i18n.t('login.submitting') }}</ng-container>
+        <ng-container *ngIf="!submitting">{{ i18n.t('login.submit') }} <i nz-icon nzType="arrow-right"></i></ng-container>
+      </button>
+      <div class="login-form-footer"><span class="login-card-status"></span> {{ i18n.t('login.footer') }}</div>
+    </form>
+  </main>
+</div>

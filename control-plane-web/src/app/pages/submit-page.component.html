@@ -1,0 +1,64 @@
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ i18n.t('submit.title') }}</h1>
+    <p class="page-desc">{{ i18n.t('submit.desc') }}</p>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab" type="button" [class.active]="mode === 'single'" (click)="mode = 'single'">{{ i18n.t('submit.single') }}</button>
+  <button class="tab" type="button" [class.active]="mode === 'batch'" (click)="mode = 'batch'">{{ i18n.t('submit.batch') }}</button>
+  <button class="tab" type="button" [class.active]="mode === 'upload'" (click)="mode = 'upload'">{{ i18n.t('submit.upload') }}</button>
+</div>
+<section class="panel" *ngIf="mode === 'single'">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('submit.textSubmit') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="jobName">{{ i18n.t('submit.jobName') }}</label>
+      <input id="jobName" [(ngModel)]="jobName" />
+    </div>
+    <div class="form-row">
+      <label for="format">{{ i18n.t('submit.format') }}</label>
+      <select id="format" [ngModel]="format" (ngModelChange)="onFormatChange($event)">
+        <option value="json">json</option>
+        <option value="hocon">hocon</option>
+        <option value="sql">sql</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="payload">{{ format !== 'json' ? i18n.t('submit.configBodyRaw') : i18n.t('submit.configBody') }}</label>
+      <textarea id="payload" [(ngModel)]="payload"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="button" [disabled]="submitting" (click)="submitJson()">{{ i18n.t('submit.submitJob') }}</button>
+    </div>
+  </div>
+</section>
+<section class="panel" *ngIf="mode === 'batch'">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('submit.batch') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="batchPayload">{{ i18n.t('submit.jobsArray') }}</label>
+      <textarea id="batchPayload" [(ngModel)]="batchPayload"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="button" [disabled]="submitting" (click)="submitBatch()">{{ i18n.t('submit.batch') }}</button>
+    </div>
+  </div>
+</section>
+<section class="panel" *ngIf="mode === 'upload'">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('submit.uploadTitle') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="jobNameUpload">{{ i18n.t('submit.jobName') }}</label>
+      <input id="jobNameUpload" [(ngModel)]="jobName" />
+    </div>
+    <div class="form-row">
+      <label for="configFile">{{ i18n.t('submit.configFile') }}</label>
+      <input id="configFile" type="file" accept=".json,.conf,.config,.sql" (change)="onFile($event)" />
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="button" [disabled]="submitting" (click)="submitUpload()">{{ i18n.t('submit.uploadSubmit') }}</button>
+    </div>
+  </div>
+</section>
+<div *ngIf="message" [class.panel]="success" [class.error]="!success" style="margin-top: 16px; padding: 16px">{{ message }}</div>

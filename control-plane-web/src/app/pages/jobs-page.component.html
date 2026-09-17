@@ -1,0 +1,55 @@
+<div class="run-space run-jobs">
+  <header class="run-page-header">
+    <div>
+      <span class="run-page-kicker">{{ i18n.t('nav.space') }}</span>
+      <h1 class="run-page-title">{{ i18n.t('jobs.title') }}</h1>
+      <p class="run-page-desc">{{ i18n.t('jobs.desc') }}</p>
+    </div>
+    <div class="run-page-actions">
+      <label class="run-refresh-control">
+        <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+        {{ i18n.t('app.autoRefresh') }}
+      </label>
+      <button class="btn danger" type="button" *ngIf="tab === 'running' && selectedIds.length" (click)="handleBatchStop()">
+        <i nz-icon nzType="stop"></i>{{ i18n.t('jobs.batchStop', { count: selectedIds.length }) }}
+      </button>
+    </div>
+  </header>
+  <div class="run-tabs" role="tablist" [attr.aria-label]="i18n.t('jobs.title')">
+    <button class="run-tab" type="button" role="tab" [class.active]="tab === 'running'" [attr.aria-selected]="tab === 'running'" (click)="setTab('running')">{{ i18n.t('jobs.running') }}</button>
+    <button class="run-tab" type="button" role="tab" [class.active]="tab === 'finished'" [attr.aria-selected]="tab === 'finished'" (click)="setTab('finished')">{{ i18n.t('jobs.finished') }}</button>
+  </div>
+  <div class="run-filter-bar" *ngIf="tab === 'finished'" [attr.aria-label]="i18n.t('jobs.finishedTitle')">
+    <button *ngFor="let state of finishedStates" class="run-filter-chip" type="button" [class.active]="finishedState === state" (click)="setFinishedState(state)">
+      {{ i18n.statusLabel(state) }}
+    </button>
+  </div>
+  <section class="run-panel">
+    <div class="run-panel-header">
+      <div>
+        <span class="run-panel-kicker">{{ tab === 'running' ? i18n.t('jobs.running') : i18n.t('jobs.finished') }}</span>
+        <h2>{{ tab === 'running' ? i18n.t('jobs.runningTitle') : i18n.t('jobs.finishedTitle') }}</h2>
+      </div>
+      <div class="run-panel-header-actions">
+        <span class="run-panel-meta">{{ total }} {{ i18n.t('app.records') }}</span>
+        <button class="btn compact" type="button" (click)="active.reload()"><i nz-icon nzType="reload"></i>{{ i18n.t('app.refresh') }}</button>
+      </div>
+    </div>
+    <div class="run-panel-body">
+      <app-async-state [loading]="active.loading" [error]="active.error" [data]="active.data == null ? null : jobs" [refreshing]="active.refreshing" [emptyText]="tab === 'running' ? i18n.t('jobs.emptyRunning') : i18n.t('jobs.emptyFinished')">
+        <ng-template let-rows>
+          <app-job-table
+            [jobs]="rows"
+            [showActions]="tab === 'running'"
+            [selectable]="tab === 'running'"
+            [selectedIds]="selectedIds"
+            (toggle)="toggleSelection($event)"
+            (toggleAll)="toggleAll($event)"
+            (stop)="handleStop($event)"
+          ></app-job-table>
+          <app-pagination [page]="page" [pageSize]="pageSize" [total]="total" (pageChange)="setPage($event)" (pageSizeChange)="setPageSize($event)"></app-pagination>
+        </ng-template>
+      </app-async-state>
+    </div>
+  </section>
+</div>

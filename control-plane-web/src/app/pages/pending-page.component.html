@@ -1,0 +1,90 @@
+<div class="run-space run-pending">
+  <header class="run-page-header">
+    <div>
+      <span class="run-page-kicker">{{ i18n.t('nav.space') }}</span>
+      <h1 class="run-page-title">{{ i18n.t('pending.title') }}</h1>
+      <p class="run-page-desc">{{ i18n.t('pending.desc') }}</p>
+    </div>
+    <div class="run-page-actions">
+      <label class="run-refresh-control">
+        <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+        {{ i18n.t('app.autoRefresh') }}
+      </label>
+      <button class="btn compact" type="button" (click)="pending.reload()"><i nz-icon nzType="reload"></i>{{ i18n.t('app.refresh') }}</button>
+    </div>
+  </header>
+  <app-async-state [loading]="pending.loading" [error]="pending.error" [data]="pending.data" [refreshing]="pending.refreshing" [emptyText]="i18n.t('pending.empty')">
+    <ng-template let-payload>
+      <div class="run-queue-layout">
+        <section class="run-queue-summary" [attr.aria-label]="i18n.t('pending.title')">
+          <div class="run-queue-stat" [class.attention]="payload.queueSummary.size" [class.healthy]="!payload.queueSummary.size">
+            <div class="run-queue-stat-label"><i nz-icon nzType="warning"></i>{{ i18n.t('pending.queueSize') }}</div>
+            <strong>{{ payload.queueSummary.size }}</strong>
+            <span>{{ payload.queueSummary.scheduleStrategy }}</span>
+          </div>
+          <div class="run-queue-stat" [class.attention]="payload.queueSummary.lackingTaskGroups">
+            <div class="run-queue-stat-label">{{ i18n.t('pending.lacking') }}</div>
+            <strong>{{ payload.queueSummary.lackingTaskGroups }}</strong>
+            <span>{{ i18n.t('pending.lackingHint') }}</span>
+          </div>
+          <div class="run-queue-stat">
+            <div class="run-queue-stat-label">{{ i18n.t('pending.workers') }}</div>
+            <strong>{{ payload.clusterSnapshot.workerCount }}</strong>
+            <span>{{ i18n.t('pending.freeSlots', { count: payload.clusterSnapshot.freeSlots }) }}</span>
+          </div>
+        </section>
+        <section class="run-panel">
+          <div class="run-panel-header"><div><span class="run-panel-kicker">{{ i18n.t('pending.workers') }}</span><h2>{{ i18n.t('pending.workerSnapshot') }}</h2></div><span class="run-panel-meta">{{ payload.clusterSnapshot.workers.length }} {{ i18n.t('app.records') }}</span></div>
+          <div class="run-panel-body table-wrap">
+            <table class="data-table run-table">
+              <thead>
+                <tr>
+                  <th>{{ i18n.t('pending.colAddress') }}</th>
+                  <th>{{ i18n.t('pending.colSlots') }}</th>
+                  <th>{{ i18n.t('pending.colCpuMem') }}</th>
+                  <th>{{ i18n.t('pending.colRunning') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="payload.clusterSnapshot.workers.length === 0"><td class="run-table-empty" colspan="4">{{ i18n.t('pending.emptyWorkers') }}</td></tr>
+                <tr *ngFor="let worker of payload.clusterSnapshot.workers">
+                  <td class="mono">{{ worker.address }}</td>
+                  <td>{{ worker.freeSlots }}/{{ worker.totalSlots }}</td>
+                  <td>{{ worker.cpuUsage ?? '—' }} / {{ worker.memUsage ?? '—' }}</td>
+                  <td class="mono">{{ (worker.runningJobIds || []).join(', ') || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section class="run-panel">
+          <div class="run-panel-header"><div><span class="run-panel-kicker">{{ i18n.t('pending.queueSize') }}</span><h2>{{ i18n.t('pending.pendingJobs') }}</h2></div><span class="run-panel-meta">{{ payload.pendingJobs.length }} {{ i18n.t('app.records') }}</span></div>
+          <div class="run-panel-body table-wrap">
+            <table class="data-table run-table">
+              <thead>
+                <tr>
+                  <th>{{ i18n.t('pending.colJob') }}</th>
+                  <th>{{ i18n.t('pending.colWait') }}</th>
+                  <th>{{ i18n.t('pending.colLacking') }}</th>
+                  <th>{{ i18n.t('pending.colReason') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="payload.pendingJobs.length === 0"><td class="run-table-empty" colspan="4">{{ i18n.t('pending.empty') }}</td></tr>
+                <tr *ngFor="let job of payload.pendingJobs">
+                  <td>
+                    <a class="run-table-primary" [routerLink]="['/jobs', job.jobId]">{{ jobTitle(job) }}</a>
+                    <div class="mono run-table-secondary">{{ job.jobId }}</div>
+                  </td>
+                  <td>{{ formatDuration(job.waitDurationMs) }}</td>
+                  <td>{{ job.lackingTaskGroups }}</td>
+                  <td>{{ job.failureMessage || job.failureReason || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </ng-template>
+  </app-async-state>
+</div>

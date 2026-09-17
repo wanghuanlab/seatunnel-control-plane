@@ -1,7 +1,12 @@
 node_modules/
 web/node_modules/
 web/dist/
+control-plane-web/node_modules/
+control-plane-web/dist/
+control-plane-web/.angular/
 data/
 var/
 .env
 *.log
+control-plane-server/target/
+control-plane-server/.idea/

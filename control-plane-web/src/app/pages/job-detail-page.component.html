@@ -1,0 +1,93 @@
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ i18n.t('jobs.detailTitle') }}</h1>
+    <p class="page-desc mono">{{ jobId }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" routerLink="/jobs">{{ i18n.t('jobs.backToList') }}</a>
+    <button class="btn danger" type="button" (click)="handleStop()">{{ i18n.t('jobs.stopJob') }}</button>
+  </div>
+</header>
+<app-async-state [loading]="job.loading" [error]="job.error" [data]="job.data" [emptyText]="i18n.t('jobs.notFound')">
+  <ng-template let-detail>
+    <div class="grid" style="gap: 16px">
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">{{ detail.jobName || i18n.t('app.unnamedJob') }}</h2>
+          <app-status-badge [status]="detail.jobStatus"></app-status-badge>
+        </div>
+        <div class="panel-body">
+          <div class="metric-grid">
+            <div class="metric-item"><div class="metric-key">{{ i18n.t('jobs.createdAt') }}</div><div class="metric-value">{{ formatTimestamp(detail.createTime) }}</div></div>
+            <div class="metric-item"><div class="metric-key">{{ i18n.t('jobs.finishedAt') }}</div><div class="metric-value">{{ formatTimestamp(detail.finishedTime || detail.finishTime) }}</div></div>
+            <div class="metric-item"><div class="metric-key">{{ i18n.t('jobs.savepointStart') }}</div><div class="metric-value">{{ detail.isStartWithSavePoint ? i18n.t('app.yes') : i18n.t('app.no') }}</div></div>
+            <div class="metric-item" *ngIf="detail.errorMsg"><div class="metric-key">{{ i18n.t('jobs.errorMsg') }}</div><div class="metric-value">{{ detail.errorMsg }}</div></div>
+          </div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><h2 class="panel-title">{{ i18n.t('jobs.metrics') }}</h2></div>
+        <div class="panel-body">
+          <ng-container *ngIf="metricEntries(detail).length; else noMetrics">
+            <div *ngFor="let group of metricGroups(detail) | keyvalue" [style.marginBottom.px]="18">
+              <div class="metric-group-title">{{ group.key }}</div>
+              <div class="metric-grid">
+                <div class="metric-item" *ngFor="let item of group.value">
+                  <div class="metric-key">{{ item.label }}<span class="metric-detail" *ngIf="item.detail"> · {{ item.detail }}</span></div>
+                  <div class="metric-value">{{ item.value }}</div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+          <ng-template #noMetrics><div class="empty" style="padding: 12px">{{ i18n.t('jobs.noMetrics') }}</div></ng-template>
+        </div>
+      </section>
+      <section class="panel" *ngIf="detail.jobDag?.vertexInfoMap?.length">
+        <div class="panel-header"><h2 class="panel-title">{{ i18n.t('jobs.dag') }}</h2></div>
+        <div class="panel-body"><app-dag-graph [dag]="detail.jobDag"></app-dag-graph></div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><h2 class="panel-title">Checkpoint</h2></div>
+        <div class="panel-body">
+          <app-async-state [loading]="checkpoints.loading" [error]="checkpoints.error" [data]="checkpoints.data" [emptyText]="i18n.t('jobs.noCheckpoint')">
+            <ng-template let-overview>
+              <div class="metric-grid">
+                <div class="metric-item" *ngFor="let pipeline of overview.pipelines || []">
+                  <div class="metric-key">{{ i18n.t('jobs.pipeline', { id: pipeline.pipelineId }) }}</div>
+                  <div class="metric-value">{{ i18n.t('jobs.checkpointCounts', { triggered: pipeline.counts?.triggered ?? 0, completed: pipeline.counts?.completed ?? 0 }) }}</div>
+                </div>
+                <div class="empty" style="padding: 12px" *ngIf="!(overview.pipelines?.length)">{{ i18n.t('jobs.noCheckpointData') }}</div>
+              </div>
+            </ng-template>
+          </app-async-state>
+          <div style="margin-top: 18px">
+            <app-async-state [loading]="history.loading" [error]="history.error" [data]="history.data" [emptyText]="i18n.t('jobs.noCheckpointHistory')">
+              <ng-template let-items>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>{{ i18n.t('jobs.colPipeline') }}</th>
+                        <th>{{ i18n.t('jobs.colCheckpointId') }}</th>
+                        <th>{{ i18n.t('app.status') }}</th>
+                        <th>{{ i18n.t('jobs.colTrigger') }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of historyRows(items); let index = index">
+                        <td>{{ item.pipelineId }}</td>
+                        <td class="mono">{{ checkpointValue(item, 'checkpointId') }}</td>
+                        <td>{{ checkpointValue(item, 'status') }}</td>
+                        <td>{{ formatTimestamp($any(item.checkpoint.triggerTimestamp)) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </ng-template>
+            </app-async-state>
+          </div>
+        </div>
+      </section>
+    </div>
+  </ng-template>
+</app-async-state>

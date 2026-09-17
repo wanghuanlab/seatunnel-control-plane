@@ -1,0 +1,97 @@
+<section class="panel" *ngIf="!auth.isAdmin">
+  <div class="panel-body">
+    <div class="error" style="padding: 16px">{{ i18n.t('settings.forbidden') }}</div>
+    <a class="btn" routerLink="/" style="margin-top: 12px; display: inline-flex">{{ i18n.t('settings.backHome') }}</a>
+  </div>
+</section>
+<ng-container *ngIf="auth.isAdmin">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">{{ i18n.t('settings.title') }}</h1>
+      <p class="page-desc">{{ i18n.t('settings.desc') }}</p>
+    </div>
+  </header>
+  <div class="tabs" style="margin-bottom: 16px">
+    <button class="tab" type="button" [class.active]="tab === 'seatunnel'" (click)="tab = 'seatunnel'">{{ i18n.t('settings.connection') }}</button>
+    <button class="tab" type="button" [class.active]="tab === 'users'" (click)="tab = 'users'">{{ i18n.t('settings.users') }}</button>
+  </div>
+  <section class="panel" *ngIf="tab === 'seatunnel'">
+    <div class="panel-header"><h2 class="panel-title">{{ i18n.t('settings.apiBase') }}</h2></div>
+    <div class="panel-body">
+      <form class="form-grid" (submit)="saveSeatunnel($event)">
+        <div class="form-row">
+          <label for="apiBase">{{ i18n.t('settings.apiBaseUrl') }}</label>
+          <input id="apiBase" class="mono" placeholder="http://127.0.0.1:8080" [(ngModel)]="apiBase" name="apiBase" required />
+          <div class="cron-help">{{ i18n.t('settings.apiHelp', { base: '{base}' }) }}</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="submit" [disabled]="savingSeatunnel">{{ savingSeatunnel ? i18n.t('settings.saving') : i18n.t('app.save') }}</button>
+        </div>
+        <div class="panel" *ngIf="seatunnelMessage" style="padding: 12px">{{ seatunnelMessage }}</div>
+        <div class="error" *ngIf="seatunnelError" style="padding: 12px">{{ seatunnelError }}</div>
+      </form>
+    </div>
+  </section>
+  <div class="grid" style="gap: 16px" *ngIf="tab === 'users'">
+    <section class="panel">
+      <div class="panel-header"><h2 class="panel-title">{{ i18n.t('settings.newUser') }}</h2></div>
+      <div class="panel-body">
+        <form class="form-grid" (submit)="createUser($event)" style="grid-template-columns: 1fr 1fr 160px auto">
+          <div class="form-row">
+            <label for="newUsername">{{ i18n.t('settings.username') }}</label>
+            <input id="newUsername" [(ngModel)]="newUsername" name="newUsername" required />
+          </div>
+          <div class="form-row">
+            <label for="newPassword">{{ i18n.t('settings.initPassword') }}</label>
+            <input id="newPassword" type="password" [(ngModel)]="newPassword" name="newPassword" required />
+          </div>
+          <div class="form-row">
+            <label for="newRole">{{ i18n.t('settings.role') }}</label>
+            <select id="newRole" [(ngModel)]="newRole" name="newRole">
+              <option value="user">{{ i18n.t('settings.roleUser') }}</option>
+              <option value="admin">{{ i18n.t('settings.roleAdmin') }}</option>
+            </select>
+          </div>
+          <div class="form-row" style="align-self: end">
+            <button class="btn primary" type="submit">{{ i18n.t('settings.create') }}</button>
+          </div>
+        </form>
+        <div class="error" *ngIf="usersError" style="padding: 12px; margin-top: 12px">{{ usersError }}</div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">{{ i18n.t('settings.userList') }}</h2>
+        <button class="btn" type="button" (click)="refreshUsers()">{{ i18n.t('app.refresh') }}</button>
+      </div>
+      <div class="panel-body table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ i18n.t('settings.colUser') }}</th>
+              <th>{{ i18n.t('settings.colRole') }}</th>
+              <th>{{ i18n.t('settings.colState') }}</th>
+              <th>{{ i18n.t('app.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of users">
+              <td>{{ item.username }}</td>
+              <td>{{ item.role === 'admin' ? i18n.t('settings.roleAdmin') : i18n.t('settings.roleUser') }}</td>
+              <td>{{ item.isEnabled ? i18n.t('app.enabled') : i18n.t('app.disabled') }}</td>
+              <td>
+                <div class="actions">
+                  <ng-container *ngIf="!isProtectedAdmin(item)">
+                    <button class="btn" type="button" (click)="toggleRole(item)">{{ item.role === 'admin' ? i18n.t('settings.demote') : i18n.t('settings.promote') }}</button>
+                    <button class="btn" type="button" (click)="toggleEnabled(item)">{{ item.isEnabled ? i18n.t('settings.disable') : i18n.t('settings.enable') }}</button>
+                  </ng-container>
+                  <button class="btn" type="button" (click)="resetPassword(item)">{{ i18n.t('settings.resetPassword') }}</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</ng-container>

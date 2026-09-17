@@ -1,0 +1,52 @@
+<div class="loading" *ngIf="isEdit && loading">{{ i18n.t('app.loading') }}</div>
+<div class="error" *ngIf="isEdit && loadError">{{ loadError }}</div>
+<ng-container *ngIf="!(isEdit && (loading || loadError))">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">{{ isEdit ? i18n.t('tasks.editorEdit') : i18n.t('tasks.editorCreate') }}</h1>
+      <p class="page-desc">{{ i18n.t('tasks.editorDesc') }}</p>
+    </div>
+    <div class="actions">
+      <a class="btn" routerLink="/tasks">{{ i18n.t('tasks.backToList') }}</a>
+    </div>
+  </header>
+  <section class="panel">
+    <div class="panel-header"><h2 class="panel-title">{{ i18n.t('tasks.info') }}</h2></div>
+    <div class="panel-body form-grid">
+      <div class="form-row">
+        <label for="taskName">{{ i18n.t('tasks.name') }}</label>
+        <input id="taskName" [(ngModel)]="name" [placeholder]="i18n.t('tasks.namePh')" />
+      </div>
+      <div class="form-row">
+        <label for="taskDesc">{{ i18n.t('tasks.description') }}</label>
+        <input id="taskDesc" [(ngModel)]="description" [placeholder]="i18n.t('tasks.optional')" />
+      </div>
+      <div class="form-row">
+        <label for="defaultJobName">{{ i18n.t('tasks.defaultJobName') }}</label>
+        <input id="defaultJobName" [(ngModel)]="defaultJobName" [placeholder]="i18n.t('tasks.defaultJobNamePh')" />
+      </div>
+      <div class="form-row">
+        <label for="configFormat">{{ i18n.t('tasks.configFormat') }}</label>
+        <select id="configFormat" [(ngModel)]="configFormat">
+          <option value="hocon">hocon</option>
+          <option value="json">json</option>
+          <option value="sql">sql</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="configContent">{{ i18n.t('tasks.configContent') }}</label>
+        <textarea id="configContent" [(ngModel)]="configContent"></textarea>
+      </div>
+      <label class="inline-check">
+        <input type="checkbox" [(ngModel)]="isEnabled" />
+        {{ i18n.t('tasks.enableTask') }}
+      </label>
+      <div class="actions">
+        <button class="btn primary" type="button" [disabled]="submitting || !name.trim()" (click)="save()">
+          {{ isEdit ? i18n.t('app.save') : i18n.t('tasks.createAction') }}
+        </button>
+      </div>
+    </div>
+  </section>
+  <div *ngIf="message" [class.panel]="message === i18n.t('tasks.saved')" [class.error]="message !== i18n.t('tasks.saved')" style="margin-top: 16px; padding: 16px">{{ message }}</div>
+</ng-container>

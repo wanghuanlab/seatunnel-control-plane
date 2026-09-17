@@ -1,0 +1,49 @@
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ i18n.t('logs.title') }}</h1>
+    <p class="page-desc">{{ i18n.t('logs.desc') }}</p>
+  </div>
+  <div class="actions">
+    <label class="inline-check">
+      <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+      {{ i18n.t('app.autoRefresh') }}
+    </label>
+  </div>
+</header>
+<section class="panel">
+  <div class="panel-header">
+    <h2 class="panel-title">{{ i18n.t('logs.list') }}</h2>
+    <div class="actions">
+      <input [placeholder]="i18n.t('logs.filterPh')" [(ngModel)]="jobIdInput" (keydown.enter)="applyFilter()" />
+      <button class="btn" type="button" (click)="applyFilter()">{{ i18n.t('app.refresh') }}</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <app-async-state [loading]="logs.loading" [error]="logs.error" [data]="logs.data" [refreshing]="logs.refreshing" [emptyText]="i18n.t('logs.empty')">
+      <ng-template let-entries>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{{ i18n.t('logs.colNode') }}</th>
+                <th>{{ i18n.t('logs.colName') }}</th>
+                <th>{{ i18n.t('app.actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of entries">
+                <td class="mono">{{ entry.node }}</td>
+                <td class="mono">{{ entry.logName }}</td>
+                <td><button class="btn" type="button" (click)="openLog(entry.logName)">{{ i18n.t('logs.view') }}</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-template>
+    </app-async-state>
+  </div>
+</section>
+<section class="panel" *ngIf="content" style="margin-top: 16px">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('logs.content') }}</h2></div>
+  <div class="panel-body"><pre class="mono metrics-pre">{{ content }}</pre></div>
+</section>

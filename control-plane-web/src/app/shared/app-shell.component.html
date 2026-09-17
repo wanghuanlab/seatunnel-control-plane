@@ -1,0 +1,138 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-lockup">
+        <div class="brand-orbit"><i nz-icon nzType="dashboard"></i></div>
+        <div>
+          <div class="brand-title">{{ i18n.t('app.name') }}</div>
+          <div class="brand-sub">{{ i18n.t('app.subtitle') }}</div>
+        </div>
+      </div>
+      <div class="brand-mark">{{ i18n.t('app.mark') }}</div>
+    </div>
+    <nav class="nav-list" (click)="showCommand = false; showAccountMenu = false">
+      <div class="nav-section-label">{{ i18n.t('nav.space') }}</div>
+      <a
+        *ngFor="let item of navItems"
+        class="nav-link"
+        [routerLink]="item.to"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact }"
+      >
+        <i nz-icon [nzType]="item.icon"></i>
+        {{ i18n.t(item.labelKey) }}
+      </a>
+      <div class="nav-section-label nav-section-spaced">{{ i18n.t('nav.operations') }}</div>
+      <a *ngFor="let item of operationsItems" class="nav-link" [routerLink]="item.to" routerLinkActive="active">
+        <i nz-icon [nzType]="item.icon"></i>
+        {{ i18n.t(item.labelKey) }}
+      </a>
+      <a *ngIf="auth.isAdmin" class="nav-link" routerLink="/settings" routerLinkActive="active">
+        <i nz-icon nzType="setting"></i>
+        {{ i18n.t('nav.settings') }}
+      </a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="app-topbar">
+      <button class="command-trigger" type="button" (click)="showCommand = !showCommand; showAccountMenu = false">
+        <i nz-icon nzType="search"></i>
+        <span>{{ i18n.t('topbar.search') }}</span>
+        <kbd><i nz-icon nzType="code"></i> K</kbd>
+      </button>
+      <div class="topbar-actions">
+        <div class="connection-indicator" [title]="auth.health?.message">
+          <span class="connection-dot" [class.live]="auth.health?.reachable"></span>
+          {{ auth.health?.reachable ? i18n.t('topbar.connected') : i18n.t('topbar.unconfigured') }}
+        </div>
+        <a class="btn primary compact" routerLink="/submit" (click)="showCommand = false; showAccountMenu = false">
+          <i nz-icon nzType="plus"></i> {{ i18n.t('topbar.submit') }}
+        </a>
+        <app-language-switch [compact]="true"></app-language-switch>
+        <button
+          class="icon-button theme-toggle"
+          type="button"
+          [attr.aria-label]="theme === 'dark' ? i18n.t('topbar.themeToLight') : i18n.t('topbar.themeToDark')"
+          [title]="theme === 'dark' ? i18n.t('topbar.themeToLight') : i18n.t('topbar.themeToDark')"
+          (click)="toggleTheme()"
+        >
+          <i nz-icon [nzType]="theme === 'dark' ? 'bulb' : 'star'"></i>
+        </button>
+        <div class="account-control">
+          <button
+            class="account-trigger"
+            type="button"
+            [attr.aria-expanded]="showAccountMenu"
+            aria-haspopup="menu"
+            (click)="showAccountMenu = !showAccountMenu; showCommand = false"
+          >
+            <span class="account-avatar">{{ initial() }}</span>
+            <span class="account-identity">
+              <strong>{{ auth.user?.username }}</strong>
+              <small>{{ auth.user?.role === 'admin' ? i18n.t('topbar.admin') : i18n.t('topbar.operator') }}</small>
+            </span>
+            <i nz-icon nzType="down"></i>
+          </button>
+          <div class="account-menu" role="menu" *ngIf="showAccountMenu">
+            <div class="account-menu-summary">
+              <span class="account-avatar">{{ initial() }}</span>
+              <span>
+                <strong>{{ auth.user?.username }}</strong>
+                <small>{{ auth.user?.role === 'admin' ? i18n.t('topbar.admin') : i18n.t('topbar.operator') }}</small>
+              </span>
+            </div>
+            <div class="account-menu-actions">
+              <button type="button" role="menuitem" (click)="showAccountMenu = false; showPasswordModal = true">
+                <i nz-icon nzType="key"></i> {{ i18n.t('topbar.changePassword') }}
+              </button>
+              <button type="button" role="menuitem" class="account-logout" (click)="onLogout()">
+                <i nz-icon nzType="logout"></i> {{ i18n.t('topbar.logout') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="command-menu" *ngIf="showCommand">
+        <div class="command-menu-label">{{ i18n.t('topbar.quickActions') }}</div>
+        <a routerLink="/submit" (click)="showCommand = false"><i nz-icon nzType="send"></i> {{ i18n.t('topbar.submitNew') }}</a>
+        <a routerLink="/tasks/new" (click)="showCommand = false"><i nz-icon nzType="plus"></i> {{ i18n.t('topbar.createTask') }}</a>
+        <a routerLink="/pending" (click)="showCommand = false"><i nz-icon nzType="cluster"></i> {{ i18n.t('topbar.pendingDiag') }}</a>
+      </div>
+    </header>
+    <div class="config-banner" *ngIf="auth.health && (!auth.health.configured || !auth.health.reachable)">
+      <div>{{ auth.health.message }}</div>
+      <a *ngIf="auth.isAdmin" class="btn" routerLink="/settings">{{ i18n.t('topbar.goSettings') }}</a>
+      <span *ngIf="!auth.isAdmin" style="color: var(--text-muted); font-size: 13px">{{ i18n.t('topbar.contactAdmin') }}</span>
+    </div>
+    <router-outlet></router-outlet>
+  </main>
+  <div class="modal-backdrop" role="presentation" *ngIf="showPasswordModal" (mousedown)="closePasswordModal()">
+    <section class="password-modal" role="dialog" aria-modal="true" aria-labelledby="password-modal-title" (mousedown)="$event.stopPropagation()">
+      <div class="password-modal-header">
+        <div>
+          <span class="modal-kicker">{{ i18n.t('password.kicker') }}</span>
+          <h2 id="password-modal-title">{{ i18n.t('password.title') }}</h2>
+          <p>{{ i18n.t('password.hint') }}</p>
+        </div>
+        <button class="icon-button" type="button" [attr.aria-label]="i18n.t('password.closeAria')" (click)="closePasswordModal()">×</button>
+      </div>
+      <form class="password-form" (submit)="onChangePassword($event)">
+        <div class="form-row">
+          <label for="oldPassword">{{ i18n.t('password.current') }}</label>
+          <input id="oldPassword" autocomplete="current-password" type="password" [(ngModel)]="oldPassword" name="oldPassword" required />
+        </div>
+        <div class="form-row">
+          <label for="newPassword">{{ i18n.t('password.next') }}</label>
+          <input id="newPassword" autocomplete="new-password" type="password" minlength="6" [(ngModel)]="newPassword" name="newPassword" required />
+          <span class="password-hint">{{ i18n.t('password.minLength') }}</span>
+        </div>
+        <div class="password-feedback success" *ngIf="passwordMessage">{{ passwordMessage }}</div>
+        <div class="password-feedback error" *ngIf="passwordError">{{ passwordError }}</div>
+        <div class="password-modal-actions">
+          <button class="btn ghost" type="button" (click)="closePasswordModal()">{{ i18n.t('app.cancel') }}</button>
+          <button class="btn primary" type="submit">{{ i18n.t('password.save') }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

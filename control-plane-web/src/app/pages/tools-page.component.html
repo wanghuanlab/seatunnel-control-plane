@@ -1,0 +1,50 @@
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ i18n.t('tools.title') }}</h1>
+    <p class="page-desc">{{ i18n.t('tools.desc') }}</p>
+  </div>
+</header>
+<section class="panel">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('tools.updateTags') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="tags">{{ i18n.t('tools.tagsLabel') }}</label>
+      <textarea id="tags" [(ngModel)]="tagsJson"></textarea>
+    </div>
+    <button class="btn primary" type="button" (click)="updateTags()">{{ i18n.t('tools.updateTagsAction') }}</button>
+  </div>
+</section>
+<section class="panel" style="margin-top: 16px">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('tools.encrypt') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="encrypt">{{ i18n.t('tools.encryptLabel') }}</label>
+      <textarea id="encrypt" [(ngModel)]="encryptJson"></textarea>
+    </div>
+    <button class="btn primary" type="button" (click)="encrypt()">{{ i18n.t('tools.encryptAction') }}</button>
+  </div>
+</section>
+<section class="panel" style="margin-top: 16px">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('tools.batchStop') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="stopJobIds">{{ i18n.t('tools.stopIds') }}</label>
+      <textarea id="stopJobIds" [(ngModel)]="stopJobIds" placeholder="1234567890,9876543210"></textarea>
+    </div>
+    <button class="btn danger" type="button" [disabled]="!stopJobIds.trim()" (click)="batchStop()">{{ i18n.t('tools.stopAction') }}</button>
+  </div>
+</section>
+<section class="panel" style="margin-top: 16px">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('tools.batchSubmit') }}</h2></div>
+  <div class="panel-body form-grid">
+    <div class="form-row">
+      <label for="batchSubmit">{{ i18n.t('tools.batchLabel') }}</label>
+      <textarea id="batchSubmit" [(ngModel)]="batchSubmitJson"></textarea>
+    </div>
+    <button class="btn primary" type="button" (click)="batchSubmit()">{{ i18n.t('tools.batchAction') }}</button>
+  </div>
+</section>
+<section class="panel" *ngIf="message" style="margin-top: 16px">
+  <div class="panel-header"><h2 class="panel-title">{{ i18n.t('tools.result') }}</h2></div>
+  <div class="panel-body"><pre class="mono metrics-pre">{{ message }}</pre></div>
+</section>

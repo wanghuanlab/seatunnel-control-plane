@@ -1,0 +1,41 @@
+server:
+  port: ${SCP_PORT:8800}
+  address: 127.0.0.1
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${SCP_PG_HOST:127.0.0.1}:${SCP_PG_PORT:5432}/${SCP_PG_DB:seatunnel_control_plane}
+    username: ${SCP_PG_USER:postgres}
+    password: ${SCP_PG_PASSWORD:XXXXXX}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL10Dialect
+        jdbc:
+          time_zone: UTC
+          lob:
+            non_contextual_creation: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+logging:
+  level:
+    com.wanghuanlab.scp: INFO
+    org.hibernate.SQL: WARN

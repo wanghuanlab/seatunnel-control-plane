@@ -1,0 +1,52 @@
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ i18n.t('system.title') }}</h1>
+    <p class="page-desc">{{ i18n.t('system.desc') }}</p>
+  </div>
+  <div class="actions">
+    <label class="inline-check">
+      <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+      {{ i18n.t('app.autoRefresh') }}
+    </label>
+    <button class="btn" type="button" (click)="reload()">{{ i18n.t('app.refresh') }}</button>
+  </div>
+</header>
+<app-async-state [loading]="system.loading" [error]="system.error" [data]="system.data" [refreshing]="system.refreshing" [emptyText]="i18n.t('system.empty')">
+  <ng-template let-nodes>
+    <div class="grid" style="gap: 16px">
+      <section class="panel" *ngFor="let node of nodes; let index = index">
+        <div class="panel-header">
+          <h2 class="panel-title">{{ formatSystemNodeRole(node.isMaster, i18n.t) }} · {{ node.host }}:{{ node.port }}</h2>
+        </div>
+        <div class="panel-body">
+          <div *ngFor="let group of grouped(node) | keyvalue" style="margin-bottom: 18px">
+            <div class="metric-group-title">{{ group.key }}</div>
+            <div class="metric-grid">
+              <div class="metric-item" *ngFor="let item of group.value" [title]="item.rawKey">
+                <div class="metric-key">{{ item.label }}</div>
+                <div class="metric-value">{{ item.value }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </ng-template>
+</app-async-state>
+<section class="panel" style="margin-top: 16px">
+  <div class="panel-header">
+    <h2 class="panel-title">{{ i18n.t('system.telemetry') }}</h2>
+    <div class="tabs compact">
+      <button class="tab" type="button" [class.active]="metricTab === 'metrics'" (click)="setMetricTab('metrics')">Metrics</button>
+      <button class="tab" type="button" [class.active]="metricTab === 'openmetrics'" (click)="setMetricTab('openmetrics')">OpenMetrics</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <p class="page-desc" style="margin-top: 0; margin-bottom: 12px">{{ i18n.t('system.telemetryHint') }}</p>
+    <app-async-state [loading]="metricData.loading" [error]="metricData.error" [data]="metricData.data" [refreshing]="metricData.refreshing" [emptyText]="i18n.t('system.emptyMetrics')">
+      <ng-template let-text>
+        <pre class="mono metrics-pre">{{ text }}</pre>
+      </ng-template>
+    </app-async-state>
+  </div>
+</section>

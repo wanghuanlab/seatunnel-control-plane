@@ -1,0 +1,75 @@
+<div class="run-space run-tasks">
+  <header class="run-page-header">
+    <div>
+      <span class="run-page-kicker">{{ i18n.t('nav.space') }}</span>
+      <h1 class="run-page-title">{{ i18n.t('tasks.title') }}</h1>
+      <p class="run-page-desc">{{ i18n.t('tasks.desc') }}</p>
+    </div>
+    <div class="run-page-actions">
+      <label class="run-refresh-control">
+        <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+        {{ i18n.t('app.autoRefresh') }}
+      </label>
+      <button class="btn compact" type="button" (click)="tasks.reload()"><i nz-icon nzType="reload"></i>{{ i18n.t('app.refresh') }}</button>
+      <a class="btn primary" routerLink="/tasks/new"><i nz-icon nzType="plus"></i>{{ i18n.t('tasks.create') }}</a>
+    </div>
+  </header>
+  <div class="run-notice" *ngIf="message" [class.success]="messageOk" [class.error]="!messageOk" role="status">{{ message }}</div>
+  <section class="run-panel">
+    <div class="run-panel-header">
+      <div><span class="run-panel-kicker">{{ i18n.t('nav.tasks') }}</span><h2>{{ i18n.t('tasks.list') }}</h2></div>
+      <span class="run-panel-meta">{{ tasks.data?.length ?? 0 }} {{ i18n.t('app.records') }}</span>
+    </div>
+    <div class="run-panel-body">
+      <app-async-state [loading]="tasks.loading" [error]="tasks.error" [data]="tasks.data" [refreshing]="tasks.refreshing" [emptyText]="i18n.t('tasks.empty')">
+        <ng-template let-rows>
+          <div class="table-wrap">
+            <table class="data-table run-table task-table">
+              <thead>
+                <tr>
+                  <th>{{ i18n.t('tasks.colName') }}</th>
+                  <th>{{ i18n.t('tasks.colFormat') }}</th>
+                  <th>{{ i18n.t('tasks.colSchedule') }}</th>
+                  <th>{{ i18n.t('tasks.colNext') }}</th>
+                  <th>{{ i18n.t('tasks.colLastRun') }}</th>
+                  <th>{{ i18n.t('tasks.colCreated') }}</th>
+                  <th>{{ i18n.t('tasks.colLastStatus') }}</th>
+                  <th>{{ i18n.t('app.actions') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let task of rows">
+                  <td>
+                    <a class="run-table-primary" [routerLink]="['/tasks', task.id]">{{ task.name }}</a>
+                    <div class="run-table-secondary" *ngIf="task.description">{{ task.description }}</div>
+                  </td>
+                  <td class="mono">{{ task.configFormat }}</td>
+                  <td>
+                    <a class="schedule-inline" [routerLink]="['/tasks', task.id]" [queryParams]="{ tab: 'schedule' }" [title]="task.schedule?.cronExpr || undefined">
+                      <span class="schedule-badge" [class.enabled]="scheduleOn(task)">{{ scheduleOn(task) ? i18n.t('tasks.scheduleOn') : i18n.t('tasks.scheduleOff') }}</span>
+                      <span class="schedule-period" *ngIf="period(task)">{{ period(task) }}</span>
+                    </a>
+                  </td>
+                  <td>{{ formatTimestamp(task.schedule?.nextRunAt) }}</td>
+                  <td>{{ formatTimestamp(task.lastRunAt) }}</td>
+                  <td>{{ formatTimestamp(task.createdAt) }}</td>
+                  <td><app-status-badge [status]="task.lastJobStatus"></app-status-badge></td>
+                  <td>
+                    <div class="row-actions">
+                      <button class="btn primary compact" type="button" [disabled]="!task.isEnabled || runningId === task.id" (click)="handleRun(task)">
+                        <i nz-icon nzType="caret-right"></i>{{ runningId === task.id ? i18n.t('tasks.running') : i18n.t('tasks.run') }}
+                      </button>
+                      <a class="btn compact" [routerLink]="['/tasks', task.id]">{{ i18n.t('tasks.detail') }}</a>
+                      <a class="btn compact" [routerLink]="['/tasks', task.id, 'edit']">{{ i18n.t('tasks.edit') }}</a>
+                      <button class="btn danger compact" type="button" (click)="handleDelete(task)">{{ i18n.t('tasks.delete') }}</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-template>
+      </app-async-state>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,216 @@
+<div class="run-space run-dashboard workspace-page">
+  <header class="workspace-header">
+    <div>
+      <div class="eyebrow"><span class="eyebrow-pulse"></span> {{ i18n.t('dashboard.eyebrow') }}</div>
+      <h1 class="workspace-title">{{ i18n.t('dashboard.title') }}</h1>
+      <p>{{ i18n.t('dashboard.desc') }}</p>
+    </div>
+    <div class="workspace-actions">
+      <label class="refresh-toggle">
+        <input type="checkbox" [checked]="autoRefresh" (change)="setAutoRefresh($any($event.target).checked)" />
+        <span></span> {{ i18n.t('app.autoRefreshShort') }}
+      </label>
+      <button class="btn ghost compact" type="button" (click)="showTagFilter = !showTagFilter">{{ i18n.t('dashboard.filter') }}</button>
+      <button class="icon-button" type="button" (click)="reloadAll()" [attr.aria-label]="i18n.t('dashboard.refreshAria')"><i nz-icon nzType="reload"></i></button>
+    </div>
+  </header>
+
+  <section class="filter-drawer" *ngIf="showTagFilter">
+    <div>
+      <span class="filter-title">{{ i18n.t('dashboard.filterTitle') }}</span>
+      <span class="filter-help">{{ i18n.t('dashboard.filterHelp') }}</span>
+    </div>
+    <label><span>{{ i18n.t('dashboard.tagKey') }}</span><input placeholder="zone" [(ngModel)]="tagKey" /></label>
+    <label><span>{{ i18n.t('dashboard.tagValue') }}</span><input placeholder="az1" [(ngModel)]="tagValue" /></label>
+    <button class="btn primary compact" type="button" (click)="applyFilter()">{{ i18n.t('dashboard.applyFilter') }}</button>
+  </section>
+
+  <app-async-state [loading]="overview.loading && !overview.data" [error]="overview.error" [data]="overview.data" [refreshing]="overview.refreshing" [emptyText]="i18n.t('dashboard.emptyOverview')">
+    <ng-template let-cluster>
+      <section class="signal-strip" [attr.aria-label]="i18n.t('dashboard.clusterAria')">
+        <div class="signal-health">
+          <span class="health-orb" [class.healthy]="auth.health?.reachable"></span>
+          <div>
+            <span>{{ i18n.t('dashboard.connection') }}</span>
+            <strong>{{ auth.health?.reachable ? i18n.t('dashboard.healthy') : i18n.t('dashboard.needsAttention') }}</strong>
+          </div>
+        </div>
+        <div class="signal-metric"><span>{{ i18n.t('dashboard.runningJobs') }}</span><strong>{{ cluster.runningJobs }}</strong><small>{{ i18n.t('dashboard.runningHint') }}</small></div>
+        <div class="signal-metric" [class.attention]="pendingCount"><span>{{ i18n.t('dashboard.queuePressure') }}</span><strong>{{ pendingCount }}</strong><small>{{ pendingCount ? i18n.t('dashboard.waitingSlots') : i18n.t('dashboard.queueClear') }}</small></div>
+        <div class="signal-metric" [class.danger]="failedCount"><span>{{ i18n.t('dashboard.failedJobs') }}</span><strong>{{ failedCount }}</strong><small>{{ i18n.t('dashboard.failedHint') }}</small></div>
+        <div class="signal-metric"><span>{{ i18n.t('dashboard.engine') }}</span><strong class="version-value">{{ cluster.projectVersion }}</strong><small>Git {{ cluster.gitCommitAbbrev }}</small></div>
+      </section>
+
+      <section class="workflow-board">
+        <div class="workflow-board-header">
+          <div>
+            <div class="section-kicker">{{ i18n.t('dashboard.pathKicker') }}</div>
+            <h2>{{ i18n.t('dashboard.workflow') }}</h2>
+            <p>{{ i18n.t('dashboard.workflowHint') }}</p>
+          </div>
+          <div class="workflow-legend">
+            <span><i class="legend-dot scheduled"></i>{{ i18n.t('dashboard.scheduled') }}</span>
+            <span><i class="legend-dot running"></i>{{ i18n.t('dashboard.running') }}</span>
+            <span><i class="legend-dot pending"></i>{{ i18n.t('dashboard.pending') }}</span>
+          </div>
+        </div>
+        <div class="workflow-lanes">
+          <div class="flow-lane">
+            <div class="flow-lane-label"><span class="flow-lane-icon"><i nz-icon nzType="clock-circle"></i></span><div><strong>{{ i18n.t('dashboard.laneSchedule') }}</strong><span>{{ schedules.length }} {{ i18n.t('dashboard.laneScheduleStatus') }}</span></div></div>
+            <div class="flow-lane-track">
+              <a class="flow-node scheduled" *ngFor="let task of schedules" [routerLink]="['/tasks', task.id]">
+                <div class="flow-node-title">{{ task.name }}</div>
+                <div class="flow-node-subtitle">
+                  <span class="flow-node-line"><span class="flow-node-label">{{ i18n.t('dashboard.scheduleCycleLabel') }}</span><span class="flow-node-sep">:</span><span class="flow-node-value">{{ scheduleCycle(task) }}</span></span>
+                  <span class="flow-node-line"><span class="flow-node-label">{{ i18n.t('dashboard.scheduleNextLabel') }}</span><span class="flow-node-sep">:</span><span class="flow-node-value">{{ formatTimestamp(task.schedule?.nextRunAt) }}</span></span>
+                </div>
+              </a>
+              <a class="flow-empty" *ngIf="!schedules.length" routerLink="/tasks/new"><span class="plus-mark">+</span> {{ i18n.t('dashboard.noSchedules') }}</a>
+            </div>
+          </div>
+          <div class="flow-lane">
+            <div class="flow-lane-label"><span class="flow-lane-icon"><i nz-icon nzType="play-circle"></i></span><div><strong>{{ i18n.t('dashboard.laneRunning') }}</strong><span>{{ runningCount }} {{ i18n.t('dashboard.laneRunningStatus') }}</span></div></div>
+            <div class="flow-lane-track">
+              <a class="flow-node running" *ngFor="let job of runningJobs" [routerLink]="['/jobs', job.jobId]">
+                <div class="flow-node-title">{{ jobTitle(job) }}</div>
+                <div class="flow-node-subtitle">
+                  <span class="flow-node-line"><span class="flow-node-label">{{ i18n.t('dashboard.runningStartLabel') }}</span><span class="flow-node-sep">:</span><span class="flow-node-value">{{ formatTimestamp(job.createTime) }}</span></span>
+                  <span class="flow-node-line"><span class="flow-node-label">{{ i18n.t('dashboard.runningElapsedLabel') }}</span><span class="flow-node-sep">:</span><span class="flow-node-value">{{ formatElapsed(elapsedMsSince(job.createTime)) }}</span></span>
+                </div>
+                <span class="flow-live-dot"></span>
+              </a>
+              <div class="flow-empty quiet" *ngIf="!runningJobs.length">{{ i18n.t('dashboard.noRunning') }}</div>
+            </div>
+          </div>
+          <div class="flow-lane">
+            <div class="flow-lane-label"><span class="flow-lane-icon"><i nz-icon nzType="cluster"></i></span><div><strong>{{ i18n.t('dashboard.lanePending') }}</strong><span>{{ pending.data?.pendingJobs.length || 0 }} {{ i18n.t('dashboard.lanePendingStatus') }}</span></div></div>
+            <div class="flow-lane-track">
+              <a class="flow-node pending" *ngFor="let job of pending.data?.pendingJobs || []" [routerLink]="['/jobs', job.jobId]">
+                <div class="flow-node-title">{{ job.jobName || i18n.t('app.jobFallback', { id: job.jobId }) }}</div>
+                <div class="flow-node-subtitle">
+                  <span class="flow-node-line"><span class="flow-node-label">{{ i18n.t('dashboard.pendingJoinedLabel') }}</span><span class="flow-node-sep">:</span><span class="flow-node-value">{{ formatTimestamp(nowMinus(job.waitDurationMs)) }}</span></span>
+                  <span class="flow-node-line"><span class="flow-node-label">{{ i18n.t('dashboard.pendingWaitedLabel') }}</span><span class="flow-node-sep">:</span><span class="flow-node-value">{{ formatElapsed(+job.waitDurationMs || 0) }}</span></span>
+                </div>
+              </a>
+              <div class="flow-empty quiet" *ngIf="!(pending.data?.pendingJobs.length)">{{ i18n.t('dashboard.noPending') }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="operations-grid">
+        <section class="data-surface capacity-surface">
+          <div class="surface-header">
+            <div>
+              <div class="section-kicker">{{ i18n.t('dashboard.capacityKicker') }}</div>
+              <h2>{{ i18n.t('dashboard.capacity') }}</h2>
+            </div>
+            <a routerLink="/system">{{ i18n.t('dashboard.resourceMonitor') }} <i nz-icon nzType="arrow-right"></i></a>
+          </div>
+          <div class="capacity-cards">
+            <div class="capacity-card">
+              <span class="capacity-card-label"><i nz-icon nzType="dashboard"></i> Worker</span>
+              <strong class="capacity-card-value">{{ cluster.workers }}</strong>
+              <span class="capacity-card-foot">{{ i18n.t('dashboard.onlineNodes') }}</span>
+            </div>
+            <div class="capacity-card">
+              <span class="capacity-card-label">{{ i18n.t('dashboard.assignedSlots') }}</span>
+              <strong class="capacity-card-value">{{ totalSlot > 0 ? usedSlot + ' / ' + totalSlot : 'dynamic' }}</strong>
+              <span class="capacity-card-foot">{{ totalSlot > 0 ? i18n.t('dashboard.slotsFree', { count: freeSlot }) : i18n.t('dashboard.dynamicSlots') }}</span>
+              <div class="capacity-bar" *ngIf="totalSlot > 0" aria-hidden><i [style.width.%]="(usedSlot / totalSlot) * 100"></i></div>
+            </div>
+            <div class="capacity-card">
+              <span class="capacity-card-label">{{ i18n.t('dashboard.slotUse') }}</span>
+              <strong class="capacity-card-value">{{ totalSlot > 0 ? (usedSlot / totalSlot * 100 | number:'1.0-0') + '%' : '—' }}</strong>
+              <span class="capacity-card-foot">{{ totalSlot > 0 ? i18n.t('dashboard.slotsUsedHint', { used: usedSlot, total: totalSlot }) : i18n.t('dashboard.dynamicSlots') }}</span>
+            </div>
+            <div class="capacity-card">
+              <span class="capacity-card-label">{{ i18n.t('dashboard.finishedJobs') }}</span>
+              <strong class="capacity-card-value">{{ completedCount }}</strong>
+              <span class="capacity-card-foot">{{ i18n.t('dashboard.cumulative') }}</span>
+            </div>
+          </div>
+          <div class="worker-mini-list">
+            <div *ngFor="let worker of workerList.slice(0, 4)">
+              <span class="worker-state"></span>
+              <code>{{ worker.address }}</code>
+              <span>{{ worker.dynamicSlot ? 'dynamic-slot' : worker.freeSlots + '/' + worker.totalSlots + ' free' }}</span>
+              <span class="data-muted" *ngIf="usagePercent(worker.cpuUsage) == null">—</span>
+              <div class="meter" *ngIf="usagePercent(worker.cpuUsage) != null" [title]="usagePercent(worker.cpuUsage)?.toFixed(0) + '%'">
+                <div class="meter-track"><i [style.width.%]="usagePercent(worker.cpuUsage)"></i></div>
+                <span>{{ usagePercent(worker.cpuUsage)?.toFixed(0) }}%</span>
+              </div>
+            </div>
+            <div class="data-empty" *ngIf="!workerList.length">{{ i18n.t('dashboard.noWorkers') }}</div>
+          </div>
+        </section>
+        <section class="data-surface job-surface">
+          <div class="surface-header">
+            <div>
+              <div class="section-kicker">{{ i18n.t('dashboard.eventsKicker') }}</div>
+              <h2>{{ i18n.t('dashboard.jobStatus') }}</h2>
+            </div>
+            <a routerLink="/jobs">{{ i18n.t('dashboard.allJobs') }} <i nz-icon nzType="arrow-right"></i></a>
+          </div>
+          <div class="job-ledger">
+            <div class="job-ledger-head"><span>{{ i18n.t('dashboard.colJob') }}</span><span>{{ i18n.t('app.status') }}</span><span>{{ i18n.t('dashboard.colSubmitted') }}</span><span></span></div>
+            <a class="job-ledger-row" *ngFor="let job of runningJobs.slice(0, 4)" [routerLink]="['/jobs', job.jobId]">
+              <span><strong>{{ jobTitle(job) }}</strong><code>{{ job.jobId }}</code></span>
+              <app-status-badge [status]="job.jobStatus"></app-status-badge>
+              <span class="job-ledger-time">{{ formatTimestamp(job.createTime) }}</span>
+              <i nz-icon nzType="arrow-right"></i>
+            </a>
+            <div class="job-ledger-empty" *ngIf="!runningJobs.length">
+              <i nz-icon nzType="play-circle"></i>
+              <div><strong>{{ i18n.t('dashboard.quietTitle') }}</strong><span>{{ i18n.t('dashboard.quietHint') }}</span></div>
+              <a routerLink="/submit">{{ i18n.t('nav.submit') }} <i nz-icon nzType="arrow-right"></i></a>
+            </div>
+          </div>
+          <a class="attention-callout" *ngIf="pendingCount > 0" routerLink="/pending">
+            <i nz-icon nzType="warning"></i>
+            <span><strong>{{ i18n.t('dashboard.pendingAlert', { count: pendingCount }) }}</strong><small>{{ i18n.t('dashboard.pendingAlertHint') }}</small></span>
+            <i nz-icon nzType="arrow-right"></i>
+          </a>
+        </section>
+      </div>
+
+      <section class="data-surface node-surface">
+        <div class="surface-header">
+          <div>
+            <div class="section-kicker">{{ i18n.t('dashboard.nodesKicker') }}</div>
+            <h2>{{ i18n.t('dashboard.nodeHealth') }}</h2>
+          </div>
+          <span class="surface-meta">{{ i18n.t('dashboard.nodeMeta', { count: nodes.data?.length || 0 }) }}</span>
+        </div>
+        <app-async-state [loading]="nodes.loading && !nodes.data" [error]="nodes.error" [data]="nodes.data" [refreshing]="nodes.refreshing" [emptyText]="i18n.t('dashboard.noNodes')">
+          <ng-template let-list>
+            <div class="node-ledger">
+              <div class="node-row" *ngFor="let node of list; let index = index">
+                <span class="node-role"><i></i>{{ formatSystemNodeRole(node.isMaster, i18n.t) }}</span>
+                <code>{{ node.host }}:{{ node.port }}</code>
+                <div>
+                  <span class="node-label">{{ i18n.t('dashboard.heap') }}</span>
+                  <div class="meter" *ngIf="parsePercent(node['heap.memory.used/max']) != null" [title]="parsePercent(node['heap.memory.used/max'])?.toFixed(0) + '%'">
+                    <div class="meter-track"><i [style.width.%]="parsePercent(node['heap.memory.used/max'])"></i></div>
+                    <span>{{ parsePercent(node['heap.memory.used/max'])?.toFixed(0) }}%</span>
+                  </div>
+                  <span class="data-muted" *ngIf="parsePercent(node['heap.memory.used/max']) == null">—</span>
+                </div>
+                <div>
+                  <span class="node-label">{{ i18n.t('dashboard.sysLoad') }}</span>
+                  <div class="meter" *ngIf="parsePercent(node['load.system']) != null">
+                    <div class="meter-track"><i [style.width.%]="parsePercent(node['load.system'])"></i></div>
+                    <span>{{ parsePercent(node['load.system'])?.toFixed(0) }}%</span>
+                  </div>
+                  <span class="data-muted" *ngIf="parsePercent(node['load.system']) == null">—</span>
+                </div>
+                <span class="node-threads">{{ node['thread.count'] || '—' }} <small>{{ i18n.t('dashboard.threads') }}</small></span>
+                <button class="row-menu" type="button" [attr.aria-label]="i18n.t('dashboard.nodeActions')"><i nz-icon nzType="more"></i></button>
+              </div>
+            </div>
+          </ng-template>
+        </app-async-state>
+      </section>
+    </ng-template>
+  </app-async-state>
+</div>
