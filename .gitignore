@@ -8,5 +8,6 @@ data/
 var/
 .env
 *.log
+.DS_Store
 control-plane-server/target/
 control-plane-server/.idea/
